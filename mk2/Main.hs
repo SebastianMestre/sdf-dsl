@@ -135,21 +135,22 @@ lower f = go ((f, defaultEnv), defaultState)
 
 -- SSA to Javascript
 
-emitV :: Int -> String
-emitV n = "v" ++ show n
-
-emit :: Ssa -> String
-emit (MinS a b) = "Math.min(" ++ emitV a ++ "," ++ emitV b ++ ")"
-emit (MaxS a b) = "Math.max(" ++ emitV a ++ "," ++ emitV b ++ ")"
-emit (MulS a b) = emitV a ++ "*" ++ emitV b
-emit (AddS a b) = emitV a ++ "+" ++ emitV b
-emit (SubS a b) = emitV a ++ "-" ++ emitV b
-emit (SqrtS a) = "Math.sqrt(" ++ emitV a ++ ")"
-emit (ConstS x) = show x
-emit (VarS s) = s
 
 codegen :: [Ssa] -> [String]
 codegen xs = ["const " ++ emitV n ++ " = " ++ emit x ++ ";\n" | (x, n) <- zip xs [0..]] 
+  where
+    emit :: Ssa -> String
+    emit (MinS a b) = "Math.min(" ++ emitV a ++ "," ++ emitV b ++ ")"
+    emit (MaxS a b) = "Math.max(" ++ emitV a ++ "," ++ emitV b ++ ")"
+    emit (MulS a b) = emitV a ++ "*" ++ emitV b
+    emit (AddS a b) = emitV a ++ "+" ++ emitV b
+    emit (SubS a b) = emitV a ++ "-" ++ emitV b
+    emit (SqrtS a) = "Math.sqrt(" ++ emitV a ++ ")"
+    emit (ConstS x) = show x
+    emit (VarS s) = s
+
+    emitV :: Int -> String
+    emitV n = "v" ++ show n
 
 compile :: Shape -> String
 compile e = concat $ codegen ssa
