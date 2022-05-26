@@ -9,9 +9,6 @@ data Shape
   | InflatedS Float Shape
   | UnionS Shape Shape
 
-sphere radius  = InflatedS radius PointS
-box dimensions = ExtrudedS dimensions PointS
-
 data Formula
   = LetF String Formula Formula
   | MinF Formula Formula
@@ -166,9 +163,28 @@ compileOptimized e = concat $ codegen ssa
 
 main = return ()
 
-testShape = UnionS b $ UnionS c s
-  where s = ExtrudedS (0.7, 0.0, 0.0) (sphere 0.1)
-        c = sphere 0.4
-        b = TranslatedS (0.5, -0.3, 0.0) $ InflatedS 0.05 $ box (0.2, 0.6, 1.0)
+union = foldr1 UnionS
 
-crown n = foldr1 UnionS [let x = (2*3.141592) * y / n in TranslatedS (cos x, sin x, 0.0) (sphere 0.1) | y <- [1..n]]
+sphere :: Float -> Shape
+sphere radius  = InflatedS radius PointS
+
+box :: Float3 -> Shape
+box dimensions = ExtrudedS dimensions PointS
+
+roundbox :: Float -> Float3 -> Shape
+roundbox radius (dx, dy, dz) = InflatedS radius $ box (dx - radius, dy - radius, dz - radius)
+
+capsule :: Float -> Float -> Shape
+capsule radius length = ExtrudedS (length, 0.0, 0.0) (sphere radius)
+
+crown :: Int -> Float -> Shape
+crown n radius = union spheres
+  where spheres = [TranslatedS centre (sphere radius) | centre <- centres]
+        centres = [(cos angle, sin angle, 0.0) | angle <- angles]
+        angles  = [(6.283185 / fromIntegral n) * fromIntegral i | i <- [1..n]]
+
+testShape :: Shape
+testShape = union [b, c, s]
+  where s = capsule 0.1 0.7
+        c = sphere 0.4
+        b = TranslatedS (0.5, -0.3, 0.0) $ roundbox 0.05 (0.3, 0.7, 1.1)
