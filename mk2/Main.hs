@@ -2,12 +2,14 @@ module Main where
 
 type Float3 = (Float, Float, Float)
 
+-- DSL for expressing shapes
 data Shape
   = PointS
   | TranslatedS Float3 Shape
   | ExtrudedS Float3 Shape
   | InflatedS Float Shape
   | UnionS Shape Shape
+  | RotatedXyS Float Shape
 
 data Formula
   = LetF String Formula Formula
@@ -57,6 +59,15 @@ expand (ExtrudedS (rx, ry, rz) s) =
   LetF "y" (extrude "y" ry)  $
   LetF "z" (extrude "z" rz)  $
   expand s
+expand (RotatedXyS angle s) =
+  LetF "x_" (SubF (MulF (VarF "x") cosAngle) (MulF (VarF "y") sinAngle)) $
+  LetF "y_" (AddF (MulF (VarF "x") sinAngle) (MulF (VarF "y") cosAngle)) $
+  LetF "x" (VarF "x_") $
+  LetF "y" (VarF "y_") $
+  expand s
+    where
+          cosAngle = ConstF $ cos (-angle)
+          sinAngle = ConstF $ sin (-angle)
 expand (UnionS s1 s2) =
   MinF (expand s1) (expand s2)
 
