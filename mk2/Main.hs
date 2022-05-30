@@ -36,36 +36,44 @@ data Ssa
 
 -- Shape to SDF formula translation
 
+instance Num Formula where
+  x + y    = AddF x y
+  x * y    = MulF x y
+  x - y    = SubF x y
+  negate x = SubF (ConstF 0) x
+  abs         = undefined
+  fromInteger = undefined
+  signum      = undefined
+
 vx = VarF "x"
 vy = VarF "y"
 vz = VarF "z"
 
-extrude x w =  SubF (VarF x) clamped
-  where clamped = MaxF minusW (MinF w' (VarF x))
-        minusW  = SubF (ConstF 0.0) w'
+extrude x w = VarF x - clamped
+  where clamped = MaxF (-w') (MinF w' (VarF x))
         w'      = ConstF w
 
 expand :: Shape -> Formula
 expand PointS =
-  LetF "x2" (MulF vx vx) $
-  LetF "y2" (MulF vy vy) $
-  LetF "z2" (MulF vz vz) $
-  SqrtF (AddF (VarF "x2") $ AddF (VarF "y2") (VarF "z2"))
+  LetF "x2" (vx * vx) $
+  LetF "y2" (vy * vy) $
+  LetF "z2" (vz * vz) $
+  SqrtF (VarF "x2" + VarF "y2" + VarF "z2")
 expand (TranslatedS (dx, dy, dz) s) =
-  LetF "x" (SubF vx (ConstF dx)) $
-  LetF "y" (SubF vy (ConstF dy)) $
-  LetF "z" (SubF vz (ConstF dz)) $
+  LetF "x" (vx - ConstF dx) $
+  LetF "y" (vy - ConstF dy) $
+  LetF "z" (vz - ConstF dz) $
   expand s
 expand (InflatedS k s) =
-  SubF (expand s) (ConstF k)
+  expand s - ConstF k
 expand (ExtrudedS (rx, ry, rz) s) =
   LetF "x" (extrude "x" rx)  $
   LetF "y" (extrude "y" ry)  $
   LetF "z" (extrude "z" rz)  $
   expand s
 expand (RotatedXyS angle s) =
-  LetF "x_" (SubF (MulF vx cosAngle) (MulF vy sinAngle)) $
-  LetF "y_" (AddF (MulF vx sinAngle) (MulF vy cosAngle)) $
+  LetF "x_" (vx * cosAngle - vy * sinAngle) $
+  LetF "y_" (vx * sinAngle + vy * cosAngle) $
   LetF "x" (VarF "x_") $
   LetF "y" (VarF "y_") $
   expand s
