@@ -134,10 +134,22 @@ optimize (SubF f1 f2) =
     (x', ConstF 0.0)       -> x'
     (ConstF k1, ConstF k2) -> ConstF (k1 - k2)
     (x', y')               -> SubF x' y'
-optimize (MulF f1 f2) = MulF (optimize f1) (optimize f2)
+optimize (MulF f1 f2) =
+  case (optimize f1, optimize f2) of
+    (ConstF 0.0, _)        -> ConstF 0.0
+    (_, ConstF 0.0)        -> ConstF 0.0
+    (x', ConstF 1.0)       -> x'
+    (ConstF 1.0, y')       -> y'
+    (ConstF k1, ConstF k2) -> ConstF (k1 * k2)
+    (x', y')               -> MulF x' y'
 optimize (DivF f1 f2) = DivF (optimize f1) (optimize f2)
-optimize (SqrtF f1)   = SqrtF (optimize f1)
-optimize f            = f
+optimize (ModF f1 f2) = ModF (optimize f1) (optimize f2)
+optimize (AtanF f1 f2) = AtanF (optimize f1) (optimize f2)
+optimize (SqrtF f1) = SqrtF (optimize f1)
+optimize (SinF f1) = SinF (optimize f1)
+optimize (CosF f1) = CosF (optimize f1)
+optimize (ConstF x) = ConstF x
+optimize (VarF x) = VarF x
 
 -- SDF formula to SSA
 
