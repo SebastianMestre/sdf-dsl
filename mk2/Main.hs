@@ -9,8 +9,9 @@ data Shape
   | ExtrudedS Float3 Shape
   | InflatedS Float Shape
   | UnionS Shape Shape
-  | RotatedXyS Float Shape
-  | RepeatedXS Float Shape
+  | RotatedXyS Float Shape -- rotates in the xy plane
+  | RepeatedXS Float Shape -- repeats linearly in the x axis
+  | RepeatedXyS Int Shape -- repeats radially in the xy plane
 
 data Formula
   = LetF String Formula Formula
@@ -22,6 +23,9 @@ data Formula
   | DivF Formula Formula
   | ModF Formula Formula
   | SqrtF Formula
+  | SinF Formula
+  | CosF Formula
+  | AtanF Formula Formula
   | VarF String
   | ConstF Float
 
@@ -34,6 +38,9 @@ data Ssa
   | DivS Int Int
   | ModS Int Int
   | SqrtS Int
+  | SinS Int
+  | CosS Int
+  | AtanS Int Int
   | VarS String
   | ConstS Float
 
@@ -56,12 +63,14 @@ extrude x w = VarF x - clamped
   where clamped = MaxF (-w') (MinF w' (VarF x))
         w'      = ConstF w
 
-expand :: Shape -> Formula
-expand PointS =
-  LetF "x2" (vx * vx) $
-  LetF "y2" (vy * vy) $
-  LetF "z2" (vz * vz) $
+pythagoras x y z =
+  LetF "x2" (x * x) $
+  LetF "y2" (y * y) $
+  LetF "z2" (z * z) $
   SqrtF (VarF "x2" + VarF "y2" + VarF "z2")
+
+expand :: Shape -> Formula
+expand PointS = pythagoras vx vy vz
 expand (TranslatedS (dx, dy, dz) s) =
   LetF "x" (vx - ConstF dx) $
   LetF "y" (vy - ConstF dy) $
@@ -89,6 +98,18 @@ expand (RepeatedXS interval s) =
     where offset = ConstF (interval / 2)
 expand (UnionS s1 s2) =
   MinF (expand s1) (expand s2)
+expand (RepeatedXyS times s) =
+  LetF "angle"  (AtanF vy vx) $
+  LetF "angle'" (ModF (VarF "angle" + offset) (ConstF interval) - offset) $
+  LetF "radius" (pythagoras vx vy (ConstF 0)) $
+  LetF "x"      ((VarF "radius") * (CosF (VarF "angle'"))) $
+  LetF "y"      ((VarF "radius") * (SinF (VarF "angle'"))) $
+  expand s
+    where
+      twopi = 6.28318530718
+      interval = twopi / fromIntegral times
+      offset = ConstF (interval / 2)
+
 
 
 optimize :: Formula -> Formula
@@ -145,10 +166,9 @@ lower f = go ((f, defaultEnv), defaultState)
     go ((ConstF x, e), s0) = let
       (i1, s1) = addSsa ((ConstS x), s0)
       in (i1, s1)
-    go ((SqrtF f, e), s0) = let
-      (i1, s1) = go ((f, e), s0)
-      (i2, s2) = addSsa ((SqrtS i1), s1)
-      in (i2, s2)
+    go ((SqrtF f, e), s0) = goOp1 f e SqrtS s0
+    go ((SinF f, e), s0) = goOp1 f e SinS s0
+    go ((CosF f, e), s0) = goOp1 f e CosS s0
     go ((MinF f1 f2, e), s0) = goBinop f1 f2 e MinS s0
     go ((MaxF f1 f2, e), s0) = goBinop f1 f2 e MaxS s0
     go ((AddF f1 f2, e), s0) = goBinop f1 f2 e AddS s0
@@ -156,10 +176,17 @@ lower f = go ((f, defaultEnv), defaultState)
     go ((MulF f1 f2, e), s0) = goBinop f1 f2 e MulS s0
     go ((DivF f1 f2, e), s0) = goBinop f1 f2 e DivS s0
     go ((ModF f1 f2, e), s0) = goBinop f1 f2 e ModS s0
+    go ((AtanF f1 f2, e), s0) = goBinop f1 f2 e AtanS s0
+
+    goOp1 f e op s0 = let
+      (i1, s1) = go ((f, e), s0)
+      (i2, s2) = addSsa (op i1, s1)
+      in (i2, s2)
+
     goBinop f1 f2 e op s0 = let
       (i1, s1) = go ((f1, e), s0)
       (i2, s2) = go ((f2, e), s1)
-      (i3, s3) = addSsa ((op i1 i2), s2)
+      (i3, s3) = addSsa (op i1 i2, s2)
       in (i3, s3)
 
 -- SSA to Javascript
@@ -171,14 +198,18 @@ codegen xs = ["const " ++ emitV n ++ " = " ++ emit x ++ ";\n" | (x, n) <- zip xs
     emit :: Ssa -> String
     emit (MinS a b) = emitF2 "Math.min" a b
     emit (MaxS a b) = emitF2 "Math.max" a b
+    emit (AtanS a b) = emitF2 "Math.atan2" a b
     emit (MulS a b) = emitBinop "*" a b
     emit (AddS a b) = emitBinop "+" a b
     emit (SubS a b) = emitBinop "-" a b
     emit (ModS a b) = emitF2 "mod" a b
-    emit (SqrtS a) = "Math.sqrt(" ++ emitV a ++ ")"
+    emit (SqrtS a) = emitF1 "Math.sqrt" a
+    emit (SinS a) = emitF1 "Math.sin" a
+    emit (CosS a) = emitF1 "Math.cos" a
     emit (ConstS x) = show x
     emit (VarS s) = s
 
+    emitF1 f a = f ++ "(" ++ emitV a ++ ")"
     emitF2 f a b = f ++ "(" ++ emitV a ++ "," ++ emitV b ++ ")"
     emitBinop op a b = emitV a ++ op ++ emitV b
 
