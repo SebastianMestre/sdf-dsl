@@ -89,23 +89,24 @@ optimize (LetF v f1 f2) = LetF v (optimize f1) (optimize f2)
 optimize (MinF f1 f2) = MinF (optimize f1) (optimize f2)
 optimize (MaxF f1 f2) =
   case (optimize f1, optimize f2) of
-    (ConstF k1, MinF (ConstF k2) f3) | k1 == k2 -> ConstF k1
-    (f1', f2') -> MaxF f1' f2'
+    (ConstF k1, MinF (ConstF k2) f3)
+      | k1 == k2 -> ConstF k1
+    (f1', f2')   -> MaxF f1' f2'
 optimize (AddF f1 f2) =
   case (optimize f1, optimize f2) of
-    (f1', ConstF 0.0) -> f1'
-    (ConstF 0.0, f2') -> f2'
+    (f1', ConstF 0.0)      -> f1'
+    (ConstF 0.0, f2')      -> f2'
     (ConstF k1, ConstF k2) -> ConstF (k1 + k2)
-    (f1', f2') -> AddF f1' f2'
+    (f1', f2')             -> AddF f1' f2'
 optimize (SubF f1 f2) =
   case (optimize f1, optimize f2) of
-    (x', ConstF 0.0) -> x'
+    (x', ConstF 0.0)       -> x'
     (ConstF k1, ConstF k2) -> ConstF (k1 - k2)
-    (x', y') -> SubF x' y'
+    (x', y')               -> SubF x' y'
 optimize (MulF f1 f2) = MulF (optimize f1) (optimize f2)
 optimize (DivF f1 f2) = DivF (optimize f1) (optimize f2)
-optimize (SqrtF f1) = SqrtF (optimize f1)
-optimize f = f
+optimize (SqrtF f1)   = SqrtF (optimize f1)
+optimize f            = f
 
 -- SDF formula to SSA
 
