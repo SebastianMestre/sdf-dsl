@@ -36,6 +36,10 @@ data Ssa
 
 -- Shape to SDF formula translation
 
+vx = VarF "x"
+vy = VarF "y"
+vz = VarF "z"
+
 extrude x w =  SubF (VarF x) clamped
   where clamped = MaxF minusW (MinF w' (VarF x))
         minusW  = SubF (ConstF 0.0) w'
@@ -43,14 +47,14 @@ extrude x w =  SubF (VarF x) clamped
 
 expand :: Shape -> Formula
 expand PointS =
-  LetF "x2" (MulF (VarF "x") (VarF "x")) $
-  LetF "y2" (MulF (VarF "y") (VarF "y")) $
-  LetF "z2" (MulF (VarF "z") (VarF "z")) $
+  LetF "x2" (MulF vx vx) $
+  LetF "y2" (MulF vy vy) $
+  LetF "z2" (MulF vz vz) $
   SqrtF (AddF (VarF "x2") $ AddF (VarF "y2") (VarF "z2"))
 expand (TranslatedS (dx, dy, dz) s) =
-  LetF "x" (SubF (VarF "x") (ConstF dx)) $
-  LetF "y" (SubF (VarF "y") (ConstF dy)) $
-  LetF "z" (SubF (VarF "z") (ConstF dz)) $
+  LetF "x" (SubF vx (ConstF dx)) $
+  LetF "y" (SubF vy (ConstF dy)) $
+  LetF "z" (SubF vz (ConstF dz)) $
   expand s
 expand (InflatedS k s) =
   SubF (expand s) (ConstF k)
@@ -60,8 +64,8 @@ expand (ExtrudedS (rx, ry, rz) s) =
   LetF "z" (extrude "z" rz)  $
   expand s
 expand (RotatedXyS angle s) =
-  LetF "x_" (SubF (MulF (VarF "x") cosAngle) (MulF (VarF "y") sinAngle)) $
-  LetF "y_" (AddF (MulF (VarF "x") sinAngle) (MulF (VarF "y") cosAngle)) $
+  LetF "x_" (SubF (MulF vx cosAngle) (MulF vy sinAngle)) $
+  LetF "y_" (AddF (MulF vx sinAngle) (MulF vy cosAngle)) $
   LetF "x" (VarF "x_") $
   LetF "y" (VarF "y_") $
   expand s
