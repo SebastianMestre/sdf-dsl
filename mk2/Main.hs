@@ -93,12 +93,15 @@ expand (RotatedXyS angle s) =
       cosAngle = ConstF $ cos (-angle)
       sinAngle = ConstF $ sin (-angle)
 expand (RepeatedXS interval s) =
+  LetF "offset" (ConstF (interval / 2)) $
   LetF "x" (ModF (vx + offset) (ConstF interval) - offset) $
   expand s
-    where offset = ConstF (interval / 2)
+    where
+      offset = VarF "offset"
 expand (UnionS s1 s2) =
   MinF (expand s1) (expand s2)
 expand (RepeatedXyS times s) =
+  LetF "offset" (ConstF (interval / 2)) $
   LetF "angle"  (AtanF vy vx) $
   LetF "angle'" (ModF (VarF "angle" + offset) (ConstF interval) - offset) $
   LetF "radius" (pythagoras vx vy (ConstF 0)) $
@@ -108,7 +111,7 @@ expand (RepeatedXyS times s) =
     where
       twopi = 6.28318530718
       interval = twopi / fromIntegral times
-      offset = ConstF (interval / 2)
+      offset = VarF "offset"
 
 
 
