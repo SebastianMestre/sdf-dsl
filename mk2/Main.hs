@@ -10,6 +10,7 @@ data Shape
   | InflatedS Float Shape
   | UnionS Shape Shape
   | RotatedXyS Float Shape
+  | RepeatedXS Float Shape
 
 data Formula
   = LetF String Formula Formula
@@ -19,6 +20,7 @@ data Formula
   | SubF Formula Formula
   | MulF Formula Formula
   | DivF Formula Formula
+  | ModF Formula Formula
   | SqrtF Formula
   | VarF String
   | ConstF Float
@@ -30,6 +32,7 @@ data Ssa
   | SubS Int Int
   | MulS Int Int
   | DivS Int Int
+  | ModS Int Int
   | SqrtS Int
   | VarS String
   | ConstS Float
@@ -78,8 +81,12 @@ expand (RotatedXyS angle s) =
   LetF "y" (VarF "y_") $
   expand s
     where
-          cosAngle = ConstF $ cos (-angle)
-          sinAngle = ConstF $ sin (-angle)
+      cosAngle = ConstF $ cos (-angle)
+      sinAngle = ConstF $ sin (-angle)
+expand (RepeatedXS interval s) =
+  LetF "x" (ModF (vx + offset) (ConstF interval) - offset) $
+  expand s
+    where offset = ConstF (interval / 2)
 expand (UnionS s1 s2) =
   MinF (expand s1) (expand s2)
 
@@ -148,6 +155,7 @@ lower f = go ((f, defaultEnv), defaultState)
     go ((SubF f1 f2, e), s0) = goBinop f1 f2 e SubS s0
     go ((MulF f1 f2, e), s0) = goBinop f1 f2 e MulS s0
     go ((DivF f1 f2, e), s0) = goBinop f1 f2 e DivS s0
+    go ((ModF f1 f2, e), s0) = goBinop f1 f2 e ModS s0
     goBinop f1 f2 e op s0 = let
       (i1, s1) = go ((f1, e), s0)
       (i2, s2) = go ((f2, e), s1)
@@ -161,14 +169,18 @@ codegen :: [Ssa] -> [String]
 codegen xs = ["const " ++ emitV n ++ " = " ++ emit x ++ ";\n" | (x, n) <- zip xs [0..]] 
   where
     emit :: Ssa -> String
-    emit (MinS a b) = "Math.min(" ++ emitV a ++ "," ++ emitV b ++ ")"
-    emit (MaxS a b) = "Math.max(" ++ emitV a ++ "," ++ emitV b ++ ")"
-    emit (MulS a b) = emitV a ++ "*" ++ emitV b
-    emit (AddS a b) = emitV a ++ "+" ++ emitV b
-    emit (SubS a b) = emitV a ++ "-" ++ emitV b
+    emit (MinS a b) = emitF2 "Math.min" a b
+    emit (MaxS a b) = emitF2 "Math.max" a b
+    emit (MulS a b) = emitBinop "*" a b
+    emit (AddS a b) = emitBinop "+" a b
+    emit (SubS a b) = emitBinop "-" a b
+    emit (ModS a b) = emitF2 "mod" a b
     emit (SqrtS a) = "Math.sqrt(" ++ emitV a ++ ")"
     emit (ConstS x) = show x
     emit (VarS s) = s
+
+    emitF2 f a b = f ++ "(" ++ emitV a ++ "," ++ emitV b ++ ")"
+    emitBinop op a b = emitV a ++ op ++ emitV b
 
     emitV :: Int -> String
     emitV n = "v" ++ show n
