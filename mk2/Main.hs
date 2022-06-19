@@ -1,5 +1,7 @@
 module Main where
 
+import Control.Monad.State
+
 type Float3 = (Float, Float, Float)
 
 -- DSL for expressing shapes
@@ -156,8 +158,11 @@ optimize (VarF x) = VarF x
 type S = ([Ssa], Int)
 type Env = [(String, Int)]
 
-addSsa :: (Ssa, S) -> (Int, S)
-addSsa (x, (xs, n)) = (n, (xs ++ [x], n+1))
+addSsa :: Ssa -> State S Int
+addSsa x = do
+  (xs, n) <- get
+  put (xs ++ [x], n+1)
+  return n
 
 getVar :: String -> [(String, a)] -> a
 getVar x ((k, v):kvs)
@@ -165,47 +170,43 @@ getVar x ((k, v):kvs)
   | otherwise = getVar x kvs
 
 lower :: Formula -> (Int, S)
-lower f = go ((f, defaultEnv), defaultState)
+lower f = runState (go f defaultEnv) defaultState
   where
     defaultEnv = [("x", 0), ("y", 1), ("z", 2)]
     defaultState = ([VarS "x", VarS "y", VarS "z"], 3)
 
-    go :: ((Formula, Env), S) -> (Int, S)
-    go ((LetF v f1 f2, e), s0) = let
-      (i1, s1) = go ((f1, e), s0)
-      (i2, s2) = go ((f2, (v, i1):e), s1)
-      in (i2, s2)
-    go ((VarF v, e), s0) = let
-      i1 = getVar v e
-      in (i1, s0)
-    go ((ConstF x, e), s0) = let
-      (i1, s1) = addSsa ((ConstS x), s0)
-      in (i1, s1)
-    go ((SqrtF f, e), s0) = goOp1 f e SqrtS s0
-    go ((SinF f, e), s0) = goOp1 f e SinS s0
-    go ((CosF f, e), s0) = goOp1 f e CosS s0
-    go ((MinF f1 f2, e), s0) = goBinop f1 f2 e MinS s0
-    go ((MaxF f1 f2, e), s0) = goBinop f1 f2 e MaxS s0
-    go ((AddF f1 f2, e), s0) = goBinop f1 f2 e AddS s0
-    go ((SubF f1 f2, e), s0) = goBinop f1 f2 e SubS s0
-    go ((MulF f1 f2, e), s0) = goBinop f1 f2 e MulS s0
-    go ((DivF f1 f2, e), s0) = goBinop f1 f2 e DivS s0
-    go ((ModF f1 f2, e), s0) = goBinop f1 f2 e ModS s0
-    go ((AtanF f1 f2, e), s0) = goBinop f1 f2 e AtanS s0
+    go (LetF v f1 f2) e = do
+      i1 <- go f1 e
+      i2 <- go f2 ((v, i1) : e)
+      return i2
+    go (VarF v) e = do
+      let i1 = getVar v e
+      return i1
+    go (ConstF x) e = do
+      i1 <- addSsa (ConstS x)
+      return i1
+    go (SqrtF f) e     = goOp1 f e SqrtS
+    go (SinF f) e      = goOp1 f e SinS
+    go (CosF f) e      = goOp1 f e CosS
+    go (MinF f1 f2) e  = goOp2 f1 f2 e MinS
+    go (MaxF f1 f2) e  = goOp2 f1 f2 e MaxS
+    go (AddF f1 f2) e  = goOp2 f1 f2 e AddS
+    go (SubF f1 f2) e  = goOp2 f1 f2 e SubS
+    go (MulF f1 f2) e  = goOp2 f1 f2 e MulS
+    go (DivF f1 f2) e  = goOp2 f1 f2 e DivS
+    go (ModF f1 f2) e  = goOp2 f1 f2 e ModS
+    go (AtanF f1 f2) e = goOp2 f1 f2 e AtanS
 
-    goOp1 f e op s0 = let
-      (i1, s1) = go ((f, e), s0)
-      (i2, s2) = addSsa (op i1, s1)
-      in (i2, s2)
+    goOp1 f e op = do
+      i1 <- go f e
+      addSsa (op i1)
 
-    goBinop f1 f2 e op s0 = let
-      (i1, s1) = go ((f1, e), s0)
-      (i2, s2) = go ((f2, e), s1)
-      (i3, s3) = addSsa (op i1 i2, s2)
-      in (i3, s3)
+    goOp2 f1 f2 e op = do
+      i1 <- go f1 e
+      i2 <- go f2 e
+      addSsa (op i1 i2)
 
 -- SSA to Javascript
-
 
 codegen :: [Ssa] -> [String]
 codegen xs = ["const " ++ emitV n ++ " = " ++ emit x ++ ";\n" | (x, n) <- zip xs [0..]] 
