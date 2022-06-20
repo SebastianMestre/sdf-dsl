@@ -30,18 +30,15 @@ data Formula
   | ConstF Float
   deriving Show
 
+data SsaOp1 = SqrtS | SinS | CosS
+  deriving Show
+
+data SsaOp2 = MinS | MaxS | AddS | SubS | MulS | DivS | ModS | AtanS
+  deriving Show
+
 data Ssa
-  = MaxS Int Int
-  | MinS Int Int
-  | AddS Int Int
-  | SubS Int Int
-  | MulS Int Int
-  | DivS Int Int
-  | ModS Int Int
-  | SqrtS Int
-  | SinS Int
-  | CosS Int
-  | AtanS Int Int
+  = App2S SsaOp2 Int Int
+  | App1S SsaOp1 Int
   | VarS String
   | ConstS Float
   deriving Show
@@ -199,11 +196,11 @@ lower f = runState (go f defaultEnv) defaultState
       return i1
     go (App1F op f) e = do
       i1 <- go f e
-      addSsa (translateOp1 op i1)
+      addSsa (App1S (translateOp1 op) i1)
     go (App2F op f1 f2) e = do
       i1 <- go f1 e
       i2 <- go f2 e
-      addSsa (translateOp2 op i1 i2)
+      addSsa (App2S (translateOp2 op) i1 i2)
 
     translateOp1 SqrtF = SqrtS
     translateOp1 SinF = SinS
@@ -224,19 +221,23 @@ codegen :: [Ssa] -> [String]
 codegen xs = ["const " ++ emitV n ++ " = " ++ emit x ++ ";\n" | (x, n) <- zip xs [0..]] 
   where
     emit :: Ssa -> String
-    emit (MinS a b) = emitF2 "Math.min" a b
-    emit (MaxS a b) = emitF2 "Math.max" a b
-    emit (AtanS a b) = emitF2 "Math.atan2" a b
-    emit (MulS a b) = emitBinop "*" a b
-    emit (AddS a b) = emitBinop "+" a b
-    emit (SubS a b) = emitBinop "-" a b
-    emit (DivS a b) = emitBinop "/" a b
-    emit (ModS a b) = emitF2 "mod" a b
-    emit (SqrtS a) = emitF1 "Math.sqrt" a
-    emit (SinS a) = emitF1 "Math.sin" a
-    emit (CosS a) = emitF1 "Math.cos" a
-    emit (ConstS x) = show x
-    emit (VarS s) = s
+    emit (App2S op a b) = emitApp2 op a b
+    emit (App1S op a)   = emitApp1 op a
+    emit (ConstS x)     = show x
+    emit (VarS s)       = s
+
+    emitApp2 MinS a b  = emitF2 "Math.min" a b
+    emitApp2 MaxS a b  = emitF2 "Math.max" a b
+    emitApp2 AtanS a b = emitF2 "Math.atan2" a b
+    emitApp2 MulS a b  = emitBinop "*" a b
+    emitApp2 AddS a b  = emitBinop "+" a b
+    emitApp2 SubS a b  = emitBinop "-" a b
+    emitApp2 DivS a b  = emitBinop "/" a b
+    emitApp2 ModS a b  = emitF2 "mod" a b
+
+    emitApp1 SqrtS a   = emitF1 "Math.sqrt" a
+    emitApp1 SinS a    = emitF1 "Math.sin" a
+    emitApp1 CosS a    = emitF1 "Math.cos" a
 
     emitF1 f a = f ++ "(" ++ emitV a ++ ")"
     emitF2 f a b = f ++ "(" ++ emitV a ++ "," ++ emitV b ++ ")"
