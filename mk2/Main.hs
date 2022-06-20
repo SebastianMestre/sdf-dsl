@@ -18,17 +18,17 @@ data Formula
   | ConstF Float
   deriving Show
 
-data TacOp1 = SqrtS | SinS | CosS
+data TacOp1 = SqrtT | SinT | CosT
   deriving Show
 
-data TacOp2 = MinS | MaxS | AddS | SubS | MulS | DivS | ModS | AtanS
+data TacOp2 = MinT | MaxT | AddT | SubT | MulT | DivT | ModT | AtanT
   deriving Show
 
 data Tac
-  = App2S TacOp2 Int Int
-  | App1S TacOp1 Int
-  | VarS String
-  | ConstS Float
+  = App2T TacOp2 Int Int
+  | App1T TacOp1 Int
+  | VarT String
+  | ConstT Float
   deriving Show
 
 -- Shape to SDF formula translation
@@ -125,11 +125,11 @@ getVar x ((k, v):kvs)
   | x == k    = v
   | otherwise = getVar x kvs
 
-lower :: Formula -> (Int, S)
-lower f = runState (go f defaultEnv) defaultState
+lower :: Formula -> [Tac]
+lower f = fst $ snd $ runState (go f defaultEnv) defaultState
   where
     defaultEnv = [("x", 0), ("y", 1), ("z", 2)]
-    defaultState = ([VarS "x", VarS "y", VarS "z"], 3)
+    defaultState = ([VarT "x", VarT "y", VarT "z"], 3)
 
     go (LetF v f1 f2) e = do
       i1 <- go f1 e
@@ -139,28 +139,28 @@ lower f = runState (go f defaultEnv) defaultState
       let i1 = getVar v e
       return i1
     go (ConstF x) e = do
-      i1 <- addTac (ConstS x)
+      i1 <- addTac (ConstT x)
       return i1
     go (App1F op f) e = do
       i1 <- go f e
-      addTac (App1S (translateOp1 op) i1)
+      addTac (App1T (translateOp1 op) i1)
     go (App2F op f1 f2) e = do
       i1 <- go f1 e
       i2 <- go f2 e
-      addTac (App2S (translateOp2 op) i1 i2)
+      addTac (App2T (translateOp2 op) i1 i2)
 
-    translateOp1 SqrtF = SqrtS
-    translateOp1 SinF = SinS
-    translateOp1 CosF = CosS
+    translateOp1 SqrtF = SqrtT
+    translateOp1 SinF = SinT
+    translateOp1 CosF = CosT
 
-    translateOp2 MinF = MinS
-    translateOp2 MaxF = MaxS
-    translateOp2 AddF = AddS
-    translateOp2 SubF = SubS
-    translateOp2 MulF = MulS
-    translateOp2 DivF = DivS
-    translateOp2 ModF = ModS
-    translateOp2 AtanF = AtanS
+    translateOp2 MinF = MinT
+    translateOp2 MaxF = MaxT
+    translateOp2 AddF = AddT
+    translateOp2 SubF = SubT
+    translateOp2 MulF = MulT
+    translateOp2 DivF = DivT
+    translateOp2 ModF = ModT
+    translateOp2 AtanF = AtanT
 
 -- SSA to Javascript
 
@@ -168,23 +168,23 @@ tacToJavascript :: [Tac] -> [String]
 tacToJavascript xs = ["const " ++ emitV n ++ " = " ++ emit x ++ ";\n" | (x, n) <- zip xs [0..]]
   where
     emit :: Tac -> String
-    emit (App2S op a b) = emitApp2 op a b
-    emit (App1S op a)   = emitApp1 op a
-    emit (ConstS x)     = show x
-    emit (VarS s)       = s
+    emit (App2T op a b) = emitApp2 op a b
+    emit (App1T op a)   = emitApp1 op a
+    emit (ConstT x)     = show x
+    emit (VarT s)       = s
 
-    emitApp2 MinS a b  = emitF2 "Math.min" a b
-    emitApp2 MaxS a b  = emitF2 "Math.max" a b
-    emitApp2 AtanS a b = emitF2 "Math.atan2" a b
-    emitApp2 AddS a b  = emitBinop "+" a b
-    emitApp2 SubS a b  = emitBinop "-" a b
-    emitApp2 MulS a b  = emitBinop "*" a b
-    emitApp2 DivS a b  = emitBinop "/" a b
-    emitApp2 ModS a b  = emitF2 "mod" a b
+    emitApp2 MinT  = emitF2 "Math.min"
+    emitApp2 MaxT  = emitF2 "Math.max"
+    emitApp2 AtanT = emitF2 "Math.atan2"
+    emitApp2 AddT  = emitBinop "+"
+    emitApp2 SubT  = emitBinop "-"
+    emitApp2 MulT  = emitBinop "*"
+    emitApp2 DivT  = emitBinop "/"
+    emitApp2 ModT  = emitF2 "mod"
 
-    emitApp1 SqrtS a   = emitF1 "Math.sqrt" a
-    emitApp1 SinS a    = emitF1 "Math.sin" a
-    emitApp1 CosS a    = emitF1 "Math.cos" a
+    emitApp1 SqrtT = emitF1 "Math.sqrt"
+    emitApp1 SinT  = emitF1 "Math.sin"
+    emitApp1 CosT  = emitF1 "Math.cos"
 
     emitF1 f a = f ++ "(" ++ emitV a ++ ")"
     emitF2 f a b = f ++ "(" ++ emitV a ++ "," ++ emitV b ++ ")"
@@ -197,7 +197,7 @@ compile :: Shape -> String
 compile e = concat $ tacToJavascript code
   where
     expanded = expand e
-    (_, (code, _)) = lower expanded
+    code = lower expanded
 
 main = return ()
 
