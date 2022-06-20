@@ -1,20 +1,8 @@
 module Main where
 
+import Shape
+
 import Control.Monad.State
-
-type Float3 = (Float, Float, Float)
-
--- DSL for expressing shapes
-data Shape
-  = PointS
-  | TranslatedS Float3 Shape
-  | ExtrudedS Float3 Shape
-  | InflatedS Float Shape
-  | UnionS Shape Shape
-  | RotatedXyS Float Shape -- rotates in the xy plane
-  | RepeatedXS Float Shape -- repeats linearly in the x axis
-  | RepeatedXyS Int Shape -- repeats radially in the xy plane
-  deriving Show
 
 data FormulaOp1 = SqrtF | SinF | CosF
   deriving Show
@@ -30,15 +18,15 @@ data Formula
   | ConstF Float
   deriving Show
 
-data SsaOp1 = SqrtS | SinS | CosS
+data TacOp1 = SqrtS | SinS | CosS
   deriving Show
 
-data SsaOp2 = MinS | MaxS | AddS | SubS | MulS | DivS | ModS | AtanS
+data TacOp2 = MinS | MaxS | AddS | SubS | MulS | DivS | ModS | AtanS
   deriving Show
 
-data Ssa
-  = App2S SsaOp2 Int Int
-  | App1S SsaOp1 Int
+data Tac
+  = App2S TacOp2 Int Int
+  | App1S TacOp1 Int
   | VarS String
   | ConstS Float
   deriving Show
@@ -123,11 +111,11 @@ expand (RepeatedXyS times s) =
 
 -- SDF formula to SSA
 
-type S = ([Ssa], Int)
+type S = ([Tac], Int)
 type Env = [(String, Int)]
 
-addSsa :: Ssa -> State S Int
-addSsa x = do
+addTac :: Tac -> State S Int
+addTac x = do
   (xs, n) <- get
   put (xs ++ [x], n+1)
   return n
@@ -151,15 +139,15 @@ lower f = runState (go f defaultEnv) defaultState
       let i1 = getVar v e
       return i1
     go (ConstF x) e = do
-      i1 <- addSsa (ConstS x)
+      i1 <- addTac (ConstS x)
       return i1
     go (App1F op f) e = do
       i1 <- go f e
-      addSsa (App1S (translateOp1 op) i1)
+      addTac (App1S (translateOp1 op) i1)
     go (App2F op f1 f2) e = do
       i1 <- go f1 e
       i2 <- go f2 e
-      addSsa (App2S (translateOp2 op) i1 i2)
+      addTac (App2S (translateOp2 op) i1 i2)
 
     translateOp1 SqrtF = SqrtS
     translateOp1 SinF = SinS
@@ -176,10 +164,10 @@ lower f = runState (go f defaultEnv) defaultState
 
 -- SSA to Javascript
 
-codegen :: [Ssa] -> [String]
-codegen xs = ["const " ++ emitV n ++ " = " ++ emit x ++ ";\n" | (x, n) <- zip xs [0..]] 
+tacToJavascript :: [Tac] -> [String]
+tacToJavascript xs = ["const " ++ emitV n ++ " = " ++ emit x ++ ";\n" | (x, n) <- zip xs [0..]]
   where
-    emit :: Ssa -> String
+    emit :: Tac -> String
     emit (App2S op a b) = emitApp2 op a b
     emit (App1S op a)   = emitApp1 op a
     emit (ConstS x)     = show x
@@ -188,9 +176,9 @@ codegen xs = ["const " ++ emitV n ++ " = " ++ emit x ++ ";\n" | (x, n) <- zip xs
     emitApp2 MinS a b  = emitF2 "Math.min" a b
     emitApp2 MaxS a b  = emitF2 "Math.max" a b
     emitApp2 AtanS a b = emitF2 "Math.atan2" a b
-    emitApp2 MulS a b  = emitBinop "*" a b
     emitApp2 AddS a b  = emitBinop "+" a b
     emitApp2 SubS a b  = emitBinop "-" a b
+    emitApp2 MulS a b  = emitBinop "*" a b
     emitApp2 DivS a b  = emitBinop "/" a b
     emitApp2 ModS a b  = emitF2 "mod" a b
 
@@ -206,50 +194,10 @@ codegen xs = ["const " ++ emitV n ++ " = " ++ emit x ++ ";\n" | (x, n) <- zip xs
     emitV n = "v" ++ show n
 
 compile :: Shape -> String
-compile e = concat $ codegen ssa
+compile e = concat $ tacToJavascript code
   where
     expanded = expand e
-    (_, (ssa, _)) = lower expanded
+    (_, (code, _)) = lower expanded
 
 main = return ()
 
-union = foldr1 UnionS
-
-sphere :: Float -> Shape
-sphere radius  = InflatedS radius PointS
-
-box :: Float3 -> Shape
-box dimensions = ExtrudedS dimensions PointS
-
-roundbox :: Float -> Float3 -> Shape
-roundbox radius (dx, dy, dz) = InflatedS radius $ box (dx - radius, dy - radius, dz - radius)
-
-capsule :: Float -> Float -> Shape
-capsule radius length = ExtrudedS (length, 0.0, 0.0) (sphere radius)
-
-crown :: Int -> Float -> Float -> Shape
-{--
-crown n radius = union spheres
-  where spheres = [TranslatedS centre (sphere radius) | centre <- centres]
-        centres = [(cos angle, sin angle, 0.0) | angle <- angles]
-        angles  = [(6.283185 / fromIntegral n) * fromIntegral i | i <- [1..n]]
---}
-crown n bigRadius radius = RepeatedXyS n (TranslatedS (bigRadius, 0, 0) (sphere radius))
-
-testShape :: Shape
-testShape = union [b, c, s]
-  where s = capsule 0.1 0.7
-        c = sphere 0.4
-        b = TranslatedS (0.5, -0.3, 0.0) $ roundbox 0.05 (0.3, 0.7, 1.1)
-
-pointer :: Shape
-pointer = UnionS (roundbox 0.025 (0.1, 0.4, 1.0)) (TranslatedS (0, 0.5, 0) $ sphere 0.1)
-
-rotatedBox :: Shape
-rotatedBox = RotatedXyS 0.785398 pointer
-
-smallCrown = crown 12 0.16 0.04
-
-dotRow = RepeatedXS 0.4 smallCrown
-
-dotMatrix = RepeatedXS 0.4 $ RotatedXyS 1.57079632 dotRow
