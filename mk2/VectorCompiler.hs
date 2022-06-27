@@ -197,6 +197,22 @@ lower f = fst $ snd $ runState (go defaultEnv f) defaultState
     i <- addTac (AppT t op is)
     return $ TaVar i
 
+emitJs :: [Tac] -> String
+emitJs cs = concat $ map (++";\n") $ map (uncurry go) $ zip [0..] cs
+  where
+
+  go idx (ConstT x)    = showDecl idx (show x)
+  go idx (VarT t x)    = showDecl idx x
+  go idx (AppT t f as) = showDecl idx (showFun f ++ "(" ++ argList ++ ")")
+    where argList = concat $ intersperse "," $ map showVar as
+
+  showDecl idx expr = concat ["const ", showVar (TaVar idx), " = ", expr]
+
+  showVar (TaVar n)   = "v" ++ show n
+  showVar (TaConst x) = show x
+
+  showFun f = show f
+
 emitGlsl :: [Tac] -> String
 emitGlsl cs = concat $ map (++";\n") $ map (uncurry go) $ zip [0..] cs
   where
