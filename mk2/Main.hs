@@ -38,9 +38,9 @@ instance Num Formula where
   x * y    = App2F MulF x y
   x - y    = App2F SubF x y
   negate x = App2F SubF (ConstF 0) x
-  abs         = undefined
-  fromInteger = undefined
-  signum      = undefined
+  abs           = undefined
+  fromInteger n = ConstF (fromInteger n :: Float)
+  signum        = undefined
 
 vx = VarF "x"
 vy = VarF "y"
@@ -198,6 +198,9 @@ compile e = concat $ tacToJavascript code
   where
     expanded = expand e
     code = lower expanded
+
+
+sss f = putStrLn $ concat $ tacToJavascript $ lower f
 
 main = return ()
 
