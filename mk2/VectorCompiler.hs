@@ -146,21 +146,30 @@ infer env (LitF x) = do
 
 -- Form to three address code (Tac)
 
+type VarId = Int
+
+data TacArg = TaVar VarId | TaConst Float
+  deriving Show
+
 data Tac
-  = AppT TypeF FunF [Int]
+  = AppT TypeF FunF [TacArg]
   | VarT TypeF Name
   | ConstT Float
   deriving Show
 
-type S = ([Tac], Int)
+type S = ([Tac], VarId)
 
-type GEnv = VarLookup.Lookup Int
+type GEnv = VarLookup.Lookup VarId
 
-addTac :: Tac -> State S Int
+addTac :: Tac -> State S VarId
 addTac x = do
   (xs, n) <- get
   put (xs ++ [x], n+1)
   return n
+
+makeVar :: TacArg -> State S VarId
+makeVar (TaVar i) = return i
+makeVar (TaConst x) = addTac (ConstT x)
 
 lower :: Form TypeF -> [Tac]
 lower f = fst $ snd $ runState (go defaultEnv f) defaultState
@@ -172,20 +181,21 @@ lower f = fst $ snd $ runState (go defaultEnv f) defaultState
   defaultState :: S
   defaultState = ([VarT VectorF "pos"], 1)
 
-  go :: GEnv -> Form TypeF -> State S Int
+  go :: GEnv -> Form TypeF -> State S TacArg
   go env (LetF t h x f1 f2) = do
-    i1 <- go env f1
+    a1 <- go env f1
+    i1 <- makeVar a1
     i2 <- go (VarLookup.extend (x, i1) env) f2
     return i2
   go env (VarF t v) = do
     let i1 = VarLookup.get v env
-    return i1
+    return $ TaVar i1
   go env (LitF x) = do
-    i1 <- addTac (ConstT x)
-    return i1
+    return $ TaConst x
   go env (AppF t op as) = do
     is <- mapM (go env) as
-    addTac (AppT t op is)
+    i <- addTac (AppT t op is)
+    return $ TaVar i
 
 emitGlsl :: [Tac] -> String
 emitGlsl cs = concat $ map (++";\n") $ map (uncurry go) $ zip [0..] cs
@@ -196,12 +206,14 @@ emitGlsl cs = concat $ map (++";\n") $ map (uncurry go) $ zip [0..] cs
   go idx (AppT t f as) = showDecl (showType t)  idx (showFun f ++ "(" ++ argList ++ ")")
     where argList = concat $ intersperse "," $ map showVar as
 
-  showDecl ty idx expr = concat [ty, " ", showVar idx, " = ", expr]
+  showDecl ty idx expr = concat [ty, " ", showVar (TaVar idx), " = ", expr]
 
   showType ScalarF = "float"
   showType VectorF = "vec3"
   showType MatrixF = "mat3"
 
-  showVar n = "v" ++ show n
+  showVar (TaVar n)   = "v" ++ show n
+  showVar (TaConst x) = show x
+
 
   showFun f = show f
