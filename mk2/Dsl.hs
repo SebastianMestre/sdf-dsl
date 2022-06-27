@@ -31,6 +31,11 @@ testShape = union [b, c, s]
         c = sphere 0.4
         b = TranslatedS (0.5, -0.3, 0.0) $ roundbox 0.05 (0.3, 0.7, 1.1)
 
+simpleTest :: Shape
+simpleTest = UnionS c s
+  where s = capsule 0.1 0.7
+        c = sphere 0.4
+
 pointer :: Shape
 pointer = UnionS (roundbox 0.025 (0.1, 0.4, 1.0)) (TranslatedS (0, 0.5, 0) $ sphere 0.1)
 
