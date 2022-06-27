@@ -187,13 +187,16 @@ lower f = fst $ snd $ runState (go defaultEnv f) defaultState
     is <- mapM (go env) as
     addTac (AppT t op is)
 
-emit :: [Tac] -> String
-emit cs = concat $ map (++";\n") $ map (uncurry go) $ zip [0..] cs
+emitGlsl :: [Tac] -> String
+emitGlsl cs = concat $ map (++";\n") $ map (uncurry go) $ zip [0..] cs
   where
- 
-  go idx (AppT t f as) = showType t ++ " " ++ showVar idx ++ " = " ++ showFun f ++ "(" ++ (concat $ intersperse "," $ map showVar as) ++ ")"
-  go idx (ConstT x)    = "float"    ++ " " ++ showVar idx ++ " = " ++ show x
-  go idx (VarT t x)    = showType t ++ " " ++ showVar idx ++ " = " ++ x
+
+  go idx (ConstT x)    = showDecl "const float" idx (show x)
+  go idx (VarT t x)    = showDecl (showType t)  idx x
+  go idx (AppT t f as) = showDecl (showType t)  idx (showFun f ++ "(" ++ argList ++ ")")
+    where argList = concat $ intersperse "," $ map showVar as
+
+  showDecl ty idx expr = concat [ty, " ", showVar idx, " = ", expr]
 
   showType ScalarF = "float"
   showType VectorF = "vec3"
