@@ -6,6 +6,7 @@ import Shape
 import Control.Monad.State
 import Data.Maybe
 import Data.List
+import qualified VarLookup
 
 data Form a
   = LetF a TypeF Name (Form a) (Form a)
@@ -152,7 +153,8 @@ data Tac
   deriving Show
 
 type S = ([Tac], Int)
-type GEnv = [(String, Int)]
+
+type GEnv = VarLookup.Lookup Int
 
 addTac :: Tac -> State S Int
 addTac x = do
@@ -160,17 +162,12 @@ addTac x = do
   put (xs ++ [x], n+1)
   return n
 
-getVar :: String -> [(String, a)] -> a
-getVar x ((k, v):kvs)
-  | x == k    = v
-  | otherwise = getVar x kvs
-
 lower :: Form TypeF -> [Tac]
 lower f = fst $ snd $ runState (go defaultEnv f) defaultState
   where
 
   defaultEnv :: GEnv
-  defaultEnv = [("pos", 0)]
+  defaultEnv = VarLookup.extend ("pos", 0) $ VarLookup.empty
 
   defaultState :: S
   defaultState = ([VarT VectorF "pos"], 1)
@@ -178,10 +175,10 @@ lower f = fst $ snd $ runState (go defaultEnv f) defaultState
   go :: GEnv -> Form TypeF -> State S Int
   go env (LetF t h x f1 f2) = do
     i1 <- go env f1
-    i2 <- go ((x, i1) : env) f2
+    i2 <- go (VarLookup.extend (x, i1) env) f2
     return i2
   go env (VarF t v) = do
-    let i1 = getVar v env
+    let i1 = VarLookup.get v env
     return i1
   go env (LitF x) = do
     i1 <- addTac (ConstT x)
