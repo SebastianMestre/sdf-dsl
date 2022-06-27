@@ -224,22 +224,37 @@ emitJs cs = concat $ map (++"\n") $ map (uncurry render) $ zip [0..] cs
   jsIdentifier x      = x
 
 emitGlsl :: [Tac] -> String
-emitGlsl cs = concat $ map (++";\n") $ map (uncurry go) $ zip [0..] cs
+emitGlsl cs = concat $ map (++"\n") $ map (uncurry go) $ zip [0..] cs
   where
 
-  go idx (ConstT x)    = showDecl "const float" idx (show x)
-  go idx (VarT t x)    = showDecl (showType t)  idx x
-  go idx (AppT t f as) = showDecl (showType t)  idx (showFun f ++ "(" ++ argList ++ ")")
-    where argList = concat $ intersperse "," $ map showVar as
+  go idx (ConstT x)    = renderDecl (glConstQual glFloat) idx (show x)
+  go idx (VarT t x)    = renderDecl (renderType t) idx x
+  go idx (AppT t f as) = renderDecl (renderType t) idx (renderApp f as)
 
-  showDecl ty idx expr = concat [ty, " ", showVar (TaVar idx), " = ", expr]
+  renderApp SubF [a0, a1] = glBinop "-" (renderAtom a0) (renderAtom a1)
+  renderApp f as = glCallExpr (renderFun f) (map renderAtom as)
 
-  showType ScalarF = "float"
-  showType VectorF = "vec3"
-  showType MatrixF = "mat3"
+  renderFun LengthF = glIdentifier "length"
+  renderFun MkVecF = glIdentifier "vec3"
+  renderFun ClampF = glIdentifier "clamp"
+  renderFun MinF = glIdentifier "min"
+  renderFun f = show f
 
-  showVar (TaVar n)   = "v" ++ show n
-  showVar (TaConst x) = show x
+  renderDecl ty idx expr = glDecl ty (renderAtom (TaVar idx)) expr
 
+  renderType ScalarF = glFloat
+  renderType VectorF = glVec3
+  renderType MatrixF = glMat3
 
-  showFun f = show f
+  renderAtom (TaVar n)   = glIdentifier ("v" ++ show n)
+  renderAtom (TaConst x) = glFloatLiteral x
+
+  glBinop op lhs rhs = lhs ++ " " ++ op ++ " " ++ rhs
+  glDecl ty name expr = concat [ty, " ", name, " = ", expr, ";"]
+  glCallExpr func args = func ++ "(" ++ (concat $ intersperse ", " $ args) ++ ")"
+  glConstQual ty = "const " ++ ty
+  glFloat = "float"
+  glVec3 = "vec3"
+  glMat3 = "mat3"
+  glIdentifier x = x
+  glFloatLiteral x = show x
