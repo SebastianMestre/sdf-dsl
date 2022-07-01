@@ -96,7 +96,7 @@ overloadsOf MaxF = [[ScalarF, ScalarF, ScalarF], [VectorF, VectorF, VectorF], [M
 overloadsOf MinF = [[ScalarF, ScalarF, ScalarF], [VectorF, VectorF, VectorF], [MatrixF, MatrixF, MatrixF]]
 overloadsOf AddF = [[ScalarF, ScalarF, ScalarF], [VectorF, VectorF, VectorF], [MatrixF, MatrixF, MatrixF]]
 overloadsOf SubF = [[ScalarF, ScalarF, ScalarF], [VectorF, VectorF, VectorF], [MatrixF, MatrixF, MatrixF]]
-overloadsOf MulF = [[ScalarF, ScalarF, ScalarF], [VectorF, VectorF, VectorF], [MatrixF, MatrixF, MatrixF]]
+overloadsOf MulF = [[ScalarF, ScalarF, ScalarF], [VectorF, VectorF, VectorF], [MatrixF, MatrixF, MatrixF], [MatrixF, VectorF, VectorF]]
 overloadsOf DivF = [[ScalarF, ScalarF, ScalarF]]
 overloadsOf ClampF = [[ScalarF, ScalarF, ScalarF, ScalarF], [VectorF, VectorF, VectorF, VectorF]]
 overloadsOf SinF = [[ScalarF, ScalarF]]
@@ -232,10 +232,13 @@ emitGlsl cs = concat $ map (++"\n") $ map (uncurry go) $ zip [0..] cs
   go idx (AppT t f as) = renderDecl (renderType t) idx (renderApp f as)
 
   renderApp SubF [a0, a1] = glBinop "-" (renderAtom a0) (renderAtom a1)
+  renderApp AddF [a0, a1] = glBinop "+" (renderAtom a0) (renderAtom a1)
+  renderApp MulF [a0, a1] = glBinop "*" (renderAtom a0) (renderAtom a1)
   renderApp f as = glCallExpr (renderFun f) (map renderAtom as)
 
   renderFun LengthF = glIdentifier "length"
   renderFun MkVecF = glIdentifier "vec3"
+  renderFun MkMatF = glIdentifier "mat3"
   renderFun ClampF = glIdentifier "clamp"
   renderFun MinF = glIdentifier "min"
   renderFun f = show f
