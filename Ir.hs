@@ -11,4 +11,5 @@ data Tac
   = AppT TypeF FunF [TacArg]
   | VarT TypeF Name
   | ConstT Float
+  | PrjT FieldF TacArg
   deriving Show

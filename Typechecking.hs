@@ -27,6 +27,7 @@ overloadsOf AddF = [[ScalarF, ScalarF, ScalarF], [VectorF, VectorF, VectorF], [M
 overloadsOf SubF = [[ScalarF, ScalarF, ScalarF], [VectorF, VectorF, VectorF], [MatrixF, MatrixF, MatrixF]]
 overloadsOf MulF = [[ScalarF, ScalarF, ScalarF], [VectorF, VectorF, VectorF], [MatrixF, MatrixF, MatrixF], [MatrixF, VectorF, VectorF]]
 overloadsOf DivF = [[ScalarF, ScalarF, ScalarF]]
+overloadsOf ModF = [[ScalarF, ScalarF, ScalarF]]
 overloadsOf ClampF = [[ScalarF, ScalarF, ScalarF, ScalarF], [VectorF, VectorF, VectorF, VectorF]]
 overloadsOf SinF = [[ScalarF, ScalarF]]
 overloadsOf CosF = [[ScalarF, ScalarF]]
@@ -69,5 +70,15 @@ infer env (AppF () f as) = do
 
   let t = returnType chosen
   return (t, AppF t f args)
+
 infer env (LitF x) = do
   return (ScalarF, LitF x)
+
+infer env (PrjF () field e) = do
+  (t, e') <- infer env e
+
+  inner <- if t /= VectorF
+    then fail "accessed fields of something that is not a vector" -- TODO: error message
+    else return ()
+
+  return $ (ScalarF, PrjF ScalarF field e')

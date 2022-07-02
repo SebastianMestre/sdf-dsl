@@ -9,6 +9,7 @@ data Form a
   | VarF a Name
   | AppF a FunF [(Form a)]
   | LitF Float
+  | PrjF a FieldF (Form a)
   deriving Show
 
 instance Num (Form ()) where

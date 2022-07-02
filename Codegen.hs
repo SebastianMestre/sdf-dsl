@@ -11,6 +11,7 @@ emitJs cs = concat $ map (++"\n") $ map (uncurry render) $ zip [0..] cs
   render idx (ConstT x)                 = renderDecl t idx (show x) where t = ScalarF
   render idx (VarT t x)                 = renderDecl t idx x
   render idx (AppT t f as)              = renderDecl t idx (renderApp t f as)
+  render idx (PrjT field a)             = renderDecl t idx (renderPrj field a) where t = ScalarF
 
   renderDecl ty idx expr                = jsCommented (jsConstDecl (renderAtom (TaVar idx)) expr) (show ty)
   renderAtom (TaVar n)                  = jsIdentifier ("v" ++ show n)
@@ -20,8 +21,14 @@ emitJs cs = concat $ map (++"\n") $ map (uncurry render) $ zip [0..] cs
   renderApp ScalarF ClampF [a0, a1, s2] = jsCallExpr "Math.min" [renderAtom a1, jsCallExpr "Math.max" [renderAtom a0, renderAtom a1]]
   renderApp VectorF MkVecF [a0, a1, a2] = jsArrayLiteral [renderAtom a0, renderAtom a1, renderAtom a2]
   renderApp t f as                      = jsCallExpr (show f) (map renderAtom as)
+  renderPrj field a                     = jsFieldAccess (renderField field) (renderAtom a)
+
+  renderField XF = jsIdentifier "x"
+  renderField YF = jsIdentifier "y"
+  renderField ZF = jsIdentifier "z"
 
   -- little shallow DSL for javascript syntax
+  jsFieldAccess field lhs = lhs ++ "." ++ field
   jsCommented line comment = line ++ "\t\t\t// " ++ comment
   jsConstDecl x e = concat ["const ", x ," = ", e, ";"]
   jsCallExpr f as = f ++ "(" ++ (concat $ intersperse "," as) ++ ")"
@@ -37,11 +44,15 @@ emitGlsl cs = concat $ map (++"\n") $ map (uncurry go) $ zip [0..] cs
   go idx (ConstT x)    = renderDecl (glConstQual glFloat) idx (show x)
   go idx (VarT t x)    = renderDecl (renderType t) idx x
   go idx (AppT t f as) = renderDecl (renderType t) idx (renderApp f as)
+  go idx (PrjT field a) = renderDecl glFloat idx (renderPrj field a)
 
   renderApp SubF [a0, a1] = glBinop "-" (renderAtom a0) (renderAtom a1)
   renderApp AddF [a0, a1] = glBinop "+" (renderAtom a0) (renderAtom a1)
   renderApp MulF [a0, a1] = glBinop "*" (renderAtom a0) (renderAtom a1)
+  renderApp ModF [a0, a1] = glBinop "%" (renderAtom a0) (renderAtom a1)
   renderApp f as = glCallExpr (renderFun f) (map renderAtom as)
+
+  renderPrj field a = glFieldAccess (renderField field) (renderAtom a)
 
   renderFun LengthF = glIdentifier "length"
   renderFun MkVecF = glIdentifier "vec3"
@@ -59,6 +70,11 @@ emitGlsl cs = concat $ map (++"\n") $ map (uncurry go) $ zip [0..] cs
   renderAtom (TaVar n)   = glIdentifier ("v" ++ show n)
   renderAtom (TaConst x) = glFloatLiteral x
 
+  renderField XF = glIdentifier "x"
+  renderField YF = glIdentifier "y"
+  renderField ZF = glIdentifier "z"
+
+  glFieldAccess field lhs = lhs ++ "." ++ field
   glBinop op lhs rhs = lhs ++ " " ++ op ++ " " ++ rhs
   glDecl ty name expr = concat [ty, " ", name, " = ", expr, ";"]
   glCallExpr func args = func ++ "(" ++ (concat $ intersperse ", " $ args) ++ ")"

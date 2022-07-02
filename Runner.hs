@@ -4,7 +4,7 @@ import Dsl
 import VectorCompiler
 import Crosscutting
 
-bx = rotatedBox
+bx = dotMatrix
 bx' = VectorCompiler.expand bx
 bx'' = VectorCompiler.infer [("pos", VectorF)] bx'
 bx''' = VectorCompiler.lower (snd $ unMaybe $ bx'')

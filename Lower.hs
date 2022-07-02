@@ -45,3 +45,7 @@ lower f = fst $ snd $ runState (go defaultEnv f) defaultState
     is <- mapM (go env) as
     i <- addTac (AppT t op is)
     return $ TaVar i
+  go env (PrjF _ field e1) = do
+    i1 <- go env e1
+    i <- addTac (PrjT field i1)
+    return $ TaVar i
