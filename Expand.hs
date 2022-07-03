@@ -4,27 +4,52 @@ import Shape
 import Formula
 import Crosscutting
 
+expand :: Shape -> Form ()
+expand PointS            = lengthF pos
+expand (TranslatedS x s) = withPos (pos - vec x) s
+expand (InflatedS x s)   = expand s - lit x
+expand (ExtrudedS x s)   = withPos (extrude x pos) s
+expand (RotatedXyS a s)  = withPos (mat (makeRotationMatrix a) * pos) s
+expand (RepeatedXS x s)  = withPos (periodic x pos) s
+expand (RepeatedXyS k s) = expand s -- TODO
+expand (UnionS s1 s2)    = minF (expand s1) (expand s2)
+
+
+withPos :: Form () -> Shape -> Form ()
+withPos f s = letF VectorF "pos" f $ expand s
+
+extrude :: Float3 -> Form () -> Form ()
+extrude x f = f - clampF f (vec $ negate3 x) (vec x)
+
+periodic :: Float -> Form () -> Form ()
+periodic x f = updX (\x -> modF (x + offset) period - offset) f
+  where period = lit x
+        offset = lit (x / 2)
+
 varF = VarF ()
 appF = AppF ()
 letF = LetF ()
 prjF = PrjF ()
 
-vpos = varF "pos"
+pos = varF "pos"
 
 getX = prjF XF
 getY = prjF YF
 getZ = prjF ZF
 
-withX x e =
+lengthF f = appF LengthF [f]
+minF f1 f2 = appF MinF [f2, f2]
+modF x y = appF ModF [x, y]
+clampF f1 f2 f3 = appF ClampF [f1, f2, f3]
+
+updX f e =
   letF VectorF "__old" e $
-  appF MkVecF [x, getY old, getZ old]
+  appF MkVecF [f $ getX old, getY old, getZ old]
   where old = varF "__old"
 
-modF x y = appF ModF [x, y]
-
-vecLiteral (x, y, z) = appF MkVecF [LitF x, LitF y, LitF z]
-
-matLiteral (vx, vy, vz) = appF MkMatF [vecLiteral vx, vecLiteral vy, vecLiteral vz]
+lit x = LitF x
+vec (x, y, z) = appF MkVecF [lit x, lit y, lit z]
+mat (vx, vy, vz) = appF MkMatF [vec vx, vec vy, vec vz]
 
 makeRotationMatrix :: Float -> (Float3, Float3, Float3)
 makeRotationMatrix angle =
@@ -36,30 +61,3 @@ makeRotationMatrix angle =
   sinAngle = sin (-angle)
 
 negate3 (x, y, z) = (-x, -y, -z)
-
-extrude radii x = v - appF ClampF [v, vecLiteral (negate3 radii), vecLiteral radii]
-  where v = varF x
-
-expand :: Shape -> Form ()
-expand PointS =
-  appF LengthF [vpos]
-expand (TranslatedS delta s) =
-  letF VectorF "pos" (vpos - vecLiteral delta) $
-  expand s
-expand (InflatedS k s) =
-  expand s - LitF k
-expand (ExtrudedS radii s) =
-  letF VectorF "pos" (extrude radii "pos") $
-  expand s
-expand (RotatedXyS angle s) =
-  letF VectorF "pos" (matLiteral (makeRotationMatrix angle) * vpos) $
-  expand s
-expand (RepeatedXS interval s) =
-  letF ScalarF "offset" (LitF (interval / 2)) $
-  letF VectorF "pos" (withX (modF (getX vpos + offset) (LitF interval) - offset) vpos) $
-  expand s
-  where offset = varF "offset"
-expand (RepeatedXyS times s) = expand s -- TODO
-expand (UnionS s1 s2) =
-  appF MinF [expand s1, expand s2]
-
