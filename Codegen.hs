@@ -21,13 +21,14 @@ emitJs cs = concat $ map (++"\n") $ map (uncurry render) $ zip [0..] cs
   renderApp ScalarF ClampF [a0, a1, s2] = jsCallExpr "Math.min" [renderAtom a1, jsCallExpr "Math.max" [renderAtom a0, renderAtom a1]]
   renderApp VectorF MkVecF [a0, a1, a2] = jsArrayLiteral [renderAtom a0, renderAtom a1, renderAtom a2]
   renderApp t f as                      = jsCallExpr (show f) (map renderAtom as)
-  renderPrj field a                     = jsFieldAccess (renderField field) (renderAtom a)
+  renderPrj field a                     = jsIndexAccess (renderField field) (renderAtom a)
 
-  renderField XF = jsIdentifier "x"
-  renderField YF = jsIdentifier "y"
-  renderField ZF = jsIdentifier "z"
+  renderField XF = jsNumberLiteral 0
+  renderField YF = jsNumberLiteral 1
+  renderField ZF = jsNumberLiteral 2
 
   -- little shallow DSL for javascript syntax
+  jsIndexAccess idx lhs = lhs ++ "[" ++ idx ++ "]"
   jsFieldAccess field lhs = lhs ++ "." ++ field
   jsCommented line comment = line ++ "\t\t\t// " ++ comment
   jsConstDecl x e = concat ["const ", x ," = ", e, ";"]
@@ -49,7 +50,6 @@ emitGlsl cs = concat $ map (++"\n") $ map (uncurry go) $ zip [0..] cs
   renderApp SubF [a0, a1] = glBinop "-" (renderAtom a0) (renderAtom a1)
   renderApp AddF [a0, a1] = glBinop "+" (renderAtom a0) (renderAtom a1)
   renderApp MulF [a0, a1] = glBinop "*" (renderAtom a0) (renderAtom a1)
-  renderApp ModF [a0, a1] = glBinop "%" (renderAtom a0) (renderAtom a1)
   renderApp f as = glCallExpr (renderFun f) (map renderAtom as)
 
   renderPrj field a = glFieldAccess (renderField field) (renderAtom a)
@@ -59,6 +59,7 @@ emitGlsl cs = concat $ map (++"\n") $ map (uncurry go) $ zip [0..] cs
   renderFun MkMatF = glIdentifier "mat3"
   renderFun ClampF = glIdentifier "clamp"
   renderFun MinF = glIdentifier "min"
+  renderFun ModF = glIdentifier "mod"
   renderFun f = show f
 
   renderDecl ty idx expr = glDecl ty (renderAtom (TaVar idx)) expr
