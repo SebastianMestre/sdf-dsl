@@ -16,14 +16,17 @@ roundbox radius (dx, dy, dz) = InflatedS radius $ box (dx - radius, dy - radius,
 capsule :: Float -> Float -> Shape
 capsule radius length = ExtrudedS (length, 0.0, 0.0) (sphere radius)
 
-crown :: Int -> Float -> Float -> Shape
+-- crown :: Int -> Float -> Float -> Shape
 {--
 crown n radius = union spheres
   where spheres = [TranslatedS centre (sphere radius) | centre <- centres]
         centres = [(cos angle, sin angle, 0.0) | angle <- angles]
         angles  = [(6.283185 / fromIntegral n) * fromIntegral i | i <- [1..n]]
 --}
-crown n bigRadius radius = RepeatedXyS n (TranslatedS (bigRadius, 0, 0) (sphere radius))
+-- crown n bigRadius radius = RepeatedXyS n (TranslatedS (bigRadius, 0, 0) (sphere radius))
+-- smallCrown = crown 12 0.16 0.04
+-- dotRow = RepeatedXS 0.4 smallCrown
+-- dotMatrix = RepeatedXS 0.4 $ RotatedXyS 1.57079632 dotRow
 
 testShape :: Shape
 testShape = union [b, c, s]
@@ -42,8 +45,3 @@ pointer = UnionS (roundbox 0.025 (0.1, 0.4, 1.0)) (TranslatedS (0, 0.5, 0) $ sph
 rotatedBox :: Shape
 rotatedBox = RotatedXyS 0.785398 pointer
 
-smallCrown = crown 12 0.16 0.04
-
-dotRow = RepeatedXS 0.4 smallCrown
-
-dotMatrix = RepeatedXS 0.4 $ RotatedXyS 1.57079632 dotRow

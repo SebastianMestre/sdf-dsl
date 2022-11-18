@@ -35,6 +35,7 @@ overloadsOf AtanF = [[ScalarF, ScalarF, ScalarF]]
 overloadsOf SqrtF = [[ScalarF, ScalarF]]
 overloadsOf LengthF = [[VectorF, ScalarF]]
 overloadsOf AbsF = [[ScalarF, ScalarF], [VectorF, VectorF], [MatrixF, MatrixF]]
+overloadsOf MixF = [[ScalarF, ScalarF, ScalarF, ScalarF]]
 
 type Err = Either String
 

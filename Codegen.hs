@@ -50,17 +50,20 @@ emitGlsl cs = concat $ map (++"\n") $ map (uncurry go) $ zip [0..] cs
   renderApp SubF [a0, a1] = glBinop "-" (renderAtom a0) (renderAtom a1)
   renderApp AddF [a0, a1] = glBinop "+" (renderAtom a0) (renderAtom a1)
   renderApp MulF [a0, a1] = glBinop "*" (renderAtom a0) (renderAtom a1)
+  renderApp DivF [a0, a1] = glBinop "/" (renderAtom a0) (renderAtom a1)
   renderApp f as = glCallExpr (renderFun f) (map renderAtom as)
 
   renderPrj field a = glFieldAccess (renderField field) (renderAtom a)
 
   renderFun LengthF = glIdentifier "length"
-  renderFun MkVecF = glIdentifier "vec3"
-  renderFun MkMatF = glIdentifier "mat3"
-  renderFun ClampF = glIdentifier "clamp"
-  renderFun MinF = glIdentifier "min"
-  renderFun ModF = glIdentifier "mod"
-  renderFun f = show f
+  renderFun MkVecF  = glIdentifier "vec3"
+  renderFun MkMatF  = glIdentifier "mat3"
+  renderFun ClampF  = glIdentifier "clamp"
+  renderFun MinF    = glIdentifier "min"
+  renderFun MaxF    = glIdentifier "max"
+  renderFun ModF    = glIdentifier "mod"
+  renderFun MixF    = glIdentifier "mix"
+  -- renderFun f       = show f
 
   renderDecl ty idx expr = glDecl ty (renderAtom (TaVar idx)) expr
 

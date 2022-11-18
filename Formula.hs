@@ -20,3 +20,7 @@ instance Num (Form ()) where
   abs           = undefined
   fromInteger n = LitF (fromInteger n :: Float)
   signum        = undefined
+
+instance Fractional (Form ()) where
+  x / y          = AppF () DivF [x, y]
+  fromRational n = LitF (fromRational n :: Float)

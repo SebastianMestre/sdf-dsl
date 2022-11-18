@@ -2,7 +2,7 @@ module Crosscutting where
 
 type Name = String
 
-data FunF = MkVecF | MkMatF | MaxF | MinF | AddF | SubF | MulF | DivF | ModF | ClampF | SinF | CosF | AtanF | SqrtF | LengthF | AbsF
+data FunF = MkVecF | MkMatF | MaxF | MinF | AddF | SubF | MulF | DivF | ModF | ClampF | SinF | CosF | AtanF | SqrtF | LengthF | AbsF | MixF
   deriving Show
 
 data TypeF = ScalarF | VectorF | MatrixF
