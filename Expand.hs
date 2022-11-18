@@ -38,7 +38,7 @@ getY = prjF YF
 getZ = prjF ZF
 
 lengthF f = appF LengthF [f]
-minF f1 f2 = appF MinF [f2, f2]
+minF f1 f2 = appF MinF [f1, f2]
 modF x y = appF ModF [x, y]
 clampF f1 f2 f3 = appF ClampF [f1, f2, f3]
 
