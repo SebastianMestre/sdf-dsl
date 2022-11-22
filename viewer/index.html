@@ -92,22 +92,23 @@
 	vec4 raymarch(vec3 dir, mat3 transform) {
 
 		vec3 pos = vec3(0.0, 0.0, -1.0);
-		for (int i = 0; i < 300; ++i) {
+		for (int i = 0; i < 128; ++i) {
 			float dist = sdf(transform * pos);
 			pos = pos + dir * dist;
 		}
 
-		float alpha = sdf(transform * pos) < 0.0001 ? 1.0 : 0.0;
+		float alpha = sdf(transform * pos) < 0.001 ? 1.0 : 0.0;
 		return vec4(pos, alpha);
 	}
 
-	vec3 compute_normal(vec3 pos, mat3 transform) {
-		const float delta = 0.001;
-		vec3 offset = vec3(
-			sdf(transform * (pos + vec3(delta, 0.0, 0.0))) - sdf(transform * (pos - vec3(delta, 0.0, 0.0))),
-			sdf(transform * (pos + vec3(0.0, delta, 0.0))) - sdf(transform * (pos - vec3(0.0, delta, 0.0))),
-			sdf(transform * (pos + vec3(0.0, 0.0, delta))) - sdf(transform * (pos - vec3(0.0, 0.0, delta))));
-		return normalize(offset);
+	vec3 compute_normal(vec3 p, mat3 A) {
+		const float h = 0.0001;
+		const vec2 k = vec2(1.0, -1.0);
+		return normalize(
+			k.xyy * sdf(A * (p+k.xyy*h)) +
+			k.yyx * sdf(A * (p+k.yyx*h)) +
+			k.yxy * sdf(A * (p+k.yxy*h)) +
+			k.xxx * sdf(A * (p+k.xxx*h)) );
 	}
 
 	vec3 linear_to_gamma(vec3 color) {
@@ -129,8 +130,8 @@
 	float blinn_phong(vec3 n, vec3 l, vec3 v, float exponent) {
 		vec3 h = normalize(l + v);
 		float normalization = (exponent + 1.0) * 0.15915494309;
-		float specular_intensity = pow(max(dot(n, h), 0.0), exponent);
-		return specular_intensity * normalization;
+		float intensity = pow(max(dot(n, h), 0.0), exponent);
+		return intensity * normalization;
 	}
 
 	float lambert(vec3 n, vec3 l) {
@@ -182,7 +183,7 @@
 		return mix(diffuse, specular, fresnel);
 	}
 
-    void main() {
+	void main() {
 		float ca = cos(angle);
 		float sa = sin(angle);
 		mat3 transform = mat3(
@@ -191,7 +192,7 @@
 			sa, 0,  ca
 		);
 
-		vec2 rectCoord = (v_texCoord.st * 2.0 - 1.0) * 0.7;
+		vec2 rectCoord = (v_texCoord.st * 2.0 - 1.0) * 0.3 + vec2(0.0, +0.2);
 
 		vec3 v = -normalize(vec3(rectCoord, 1.0));
 
@@ -203,9 +204,9 @@
 			vec3 light = shade(n, v);
 			vec3 tonemapped = light / (light + 1.0);
 			gl_FragColor = vec4(linear_to_gamma(tonemapped), 1.0);
-			// gl_FragColor = vec4(n*0.5+0.5, 1.0);
+			// gl_FragColor = vec4(linear_to_gamma(n*0.5+0.5), 1.0);
 		}
-    }
+	}
 
 </script>
 
