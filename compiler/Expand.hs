@@ -1,6 +1,6 @@
 module Expand where
 
-import Shape
+import Ast
 import Formula
 import Crosscutting
 

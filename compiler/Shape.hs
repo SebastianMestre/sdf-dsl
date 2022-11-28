@@ -1,29 +1,66 @@
-module Shape where
+module Shape (
+    Shape,
+    Float3,
+    Float3x3,
 
-type Float3 = (Float, Float, Float)
+    point,
+    sphere,
+    box,
+    roundbox,
+    capsule,
 
--- DSL for expressing shapes
-data Shape
-  = PointS                         -- Point at the origin
+    rotateZ,
+    translate,
+    inflate,
+    union,
+    smoothUnion,
 
--- Positioning
-  | TranslatedS Float3 Shape       -- Moves a shape in space
-  | RotatedXyS Float Shape         -- rotates in the xy plane
+    compile
+  ) where
 
--- Shape manipulation
-  | ExtrudedS Float3 Shape         -- Separates two halves of a shape, and fills in the middle
-  | InflatedS Float Shape          -- Inflates a shape, rounding its corners
+import Ast
+import qualified VectorCompiler
+import Crosscutting
 
--- Set operations
-  | UnionS Shape Shape             -- Set union of two shapes
-  | IntersectionS Shape Shape      -- Set intersection of two shapes
---  | DifferenceS Shape Shape        -- Set difference of two shapes
+point :: Shape
+point = PointS
 
-  | SmoothUnionS Float Shape Shape -- Blob union of two shapes
+sphere :: Float -> Shape
+sphere radius  = InflatedS radius PointS
 
--- Symmetries
-  | RepeatedXS Float Shape         -- repeats linearly in the x axis
---  | RepeatedXyS Int Shape          -- repeats radially in the xy plane
+box :: Float3 -> Shape
+box dimensions = ExtrudedS dimensions PointS
 
-  deriving Show
+roundbox :: Float -> Float3 -> Shape
+roundbox radius (dx, dy, dz) = InflatedS radius $ box (dx - radius, dy - radius, dz - radius)
 
+capsule :: Float -> Float -> Shape
+capsule radius length = ExtrudedS (length, 0.0, 0.0) (sphere radius)
+
+
+union :: [Shape] -> Shape
+union = foldr1 UnionS
+
+smoothUnion :: Float -> Shape -> Shape -> Shape
+smoothUnion = SmoothUnionS
+
+inflate :: Float -> Shape -> Shape
+inflate = InflatedS
+
+translate :: Float3 -> Shape -> Shape
+translate = TranslatedS
+
+rotateZ :: Float -> Shape -> Shape
+rotateZ = RotatedXyS
+
+
+compile :: Shape -> String
+compile s = targetProgram
+  where
+    untypedFormula = VectorCompiler.expand s
+    typedFormula   = VectorCompiler.infer [("pos", VectorF)] untypedFormula
+    -- es medio turbio el unwrap, pero solo causa problema si hay bugs en expand o infer.
+    ssaProgram     = VectorCompiler.lower (snd $ unwrap $ typedFormula)
+    targetProgram  = VectorCompiler.emitGlsl ssaProgram
+
+    unwrap (Right x) = x
