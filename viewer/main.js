@@ -96,7 +96,7 @@ function start() {
 	var then = Date.now() - frameDelay;
 
 	var f = function() {
-		g.angle += 0.01
+		g.angle += 0.0003;
 		var now = Date.now();
 		var elapsed = now - then;
 		if (elapsed > frameDelay) {

@@ -31,6 +31,13 @@
 	const vec3 sky_color = vec3(0.7, 0.8, 1.0) * 0.2;
 	const vec3 sky_direction = vec3(0.0, 1.0, 0.0);
 
+	float sdf1(vec3 pos) {
+		vec3 v0 = pos;
+float v1 = length(v0);
+float v2 = v1 - 1.0;
+return v2;
+	}
+
 	float sdf2(vec3 pos) {
 		vec3 v0 = pos;
 vec3 v1 = vec3(-5.0e-2, -0.25, -9.999998e-3);
@@ -117,30 +124,42 @@ float v81 = min(v35, v80);
 return v81;
 	}
 
-	float sdf(vec3 pos) {
-		return sdf2(pos);
+	float sdf(vec3 pos, mat3 transform) {
+		pos = transform * pos;
+		float scale = 10.0;
+		return sdf2((pos + vec3(0.0, 1.5, 0.0)) / scale) * scale;
 	}
 
-	vec4 raymarch(vec3 dir, mat3 transform) {
+	vec4 raymarch(vec3 pos, vec3 dir, mat3 transform) {
 
-		vec3 pos = vec3(0.0, 0.0, -1.0);
-		for (int i = 0; i < 128; ++i) {
-			float dist = sdf(transform * pos);
-			pos = pos + dir * dist;
+		float t = 1.0;
+		for (int i = 0; i < 70; ++i) {
+			float dist = sdf(pos + dir * t, transform);
+			if (dist < 0.0001 * t) {
+				return vec4(pos + dir * t, 1.0);
+			}
+			t += dist;
 		}
 
-		float alpha = sdf(transform * pos) < 0.001 ? 1.0 : 0.0;
-		return vec4(pos, alpha);
+		return vec4(pos, 0.0);
+	}
+
+	vec4 view_raymarch(vec3 dir, mat3 transform) {
+		return raymarch(vec3(0.0, 0.0, -5.0), dir, transform);
 	}
 
 	vec3 compute_normal(vec3 p, mat3 A) {
 		const float h = 0.0001;
-		const vec2 k = vec2(1.0, -1.0);
+		const vec3 k = vec3(1.0, -1.0, 0.0);
+		// return normalize(
+		// k.xzz * (sdf(p+k.xzz*h, A) - sdf(p-k.xzz*h, A)) +
+		// k.zxz * (sdf(p+k.zxz*h, A) - sdf(p-k.zxz*h, A)) +
+		// k.zzx * (sdf(p+k.zzx*h, A) - sdf(p-k.zzx*h, A)) );
 		return normalize(
-			k.xyy * sdf(A * (p+k.xyy*h)) +
-			k.yyx * sdf(A * (p+k.yyx*h)) +
-			k.yxy * sdf(A * (p+k.yxy*h)) +
-			k.xxx * sdf(A * (p+k.xxx*h)) );
+			k.xyy * sdf(p+k.xyy*h, A) +
+			k.yyx * sdf(p+k.yyx*h, A) +
+			k.yxy * sdf(p+k.yxy*h, A) +
+			k.xxx * sdf(p+k.xxx*h, A) );
 	}
 
 	vec3 linear_to_gamma(vec3 color) {
@@ -180,7 +199,22 @@ return v81;
 		return mix(base, 1.0, curve);
 	}
 
-	vec3 shade(vec3 n, vec3 v) {
+	float soft_visiblity(vec3 pos, vec3 dir, mat3 transform, float sharpness) {
+
+		float res = 1.0;
+		float t = 0.02;
+
+		for (int i = 0; i < 128; ++i) {
+			float dist = sdf(pos + dir * t, transform );
+			if (dist < 0.0001) return 0.0;
+			res = min(res, dist / (t * sharpness));
+			t += dist;
+		}
+
+		return res;
+	}
+
+	vec3 shade(vec3 pos, vec3 n, vec3 v, mat3 transform) {
 
 		vec3 sky_power = 1.0 * gamma_to_linear(sky_color);
 		vec3 sky_diffuse = sky_power * wide_lambert(n, sky_direction);
@@ -188,7 +222,7 @@ return v81;
 
 		vec3 lamp1_dir = normalize(vec3(1.0, 0.5, -0.3));
 		vec3 lamp1_color = vec3(0.96, 0.83, 0.51) * 0.0 + 1.0;
-		vec3 lamp1_power = 10.0 * gamma_to_linear(lamp1_color);
+		vec3 lamp1_power = 10.0 * gamma_to_linear(lamp1_color) * soft_visiblity(pos, lamp1_dir, transform, 0.1);
 		vec3 lamp1_diffuse = lamp1_power * vec3(lambert(n, lamp1_dir));
 		vec3 lamp1_specular = lamp1_power * vec3(blinn_phong(n, lamp1_dir, v, 34.0));
 
@@ -224,16 +258,16 @@ return v81;
 			sa, 0,  ca
 		);
 
-		vec2 rectCoord = (v_texCoord.st * 2.0 - 1.0) * 0.3 + vec2(0.0, +0.2);
+		vec2 rectCoord = (v_texCoord.st * 2.0 - 1.0) * 0.5;
 
 		vec3 v = -normalize(vec3(rectCoord, 1.0));
 
-		vec4 res = raymarch(-v, transform);
+		vec4 res = view_raymarch(-v, transform);
 		if (res.a < 0.5) {
 			gl_FragColor = vec4(sky_color, 1.0);
 		} else {
 			vec3 n = compute_normal(res.xyz, transform);
-			vec3 light = shade(n, v);
+			vec3 light = shade(res.xyz, n, v, transform);
 			vec3 tonemapped = light / (light + 1.0);
 			gl_FragColor = vec4(linear_to_gamma(tonemapped), 1.0);
 			// gl_FragColor = vec4(linear_to_gamma(n*0.5+0.5), 1.0);
