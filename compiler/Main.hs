@@ -1,5 +1,4 @@
 import Shape
-import Dsl
 import VectorCompiler
 import Crosscutting
 
