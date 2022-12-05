@@ -20,9 +20,13 @@ module Shape (
     compile
   ) where
 
-import           Ast
-import qualified VectorCompiler
-import           Crosscutting
+import Ast
+import Crosscutting
+
+import Expand (expand)
+import Typechecking (infer)
+import Lower (lower)
+import Codegen (emitGlsl)
 
 point :: Shape
 point = PointS
@@ -61,10 +65,11 @@ repeatX = RepeatedXS
 compile :: Shape -> String
 compile s = targetProgram
   where
-    untypedFormula = VectorCompiler.expand s
-    typedFormula   = VectorCompiler.infer [("pos", VectorF)] untypedFormula
-    -- es medio turbio el unwrap, pero solo causa problema si hay bugs en expand o infer.
-    ssaProgram     = VectorCompiler.lower (snd $ unwrap $ typedFormula)
-    targetProgram  = VectorCompiler.emitGlsl ssaProgram
+    untypedFormula = expand s
+    -- es medio turbio el unwrap, pero solo puede
+    -- dar error si hay bugs en expand o infer.
+    typedFormula   = snd $ unwrap $ infer [("pos", VectorF)] untypedFormula
+    ssaProgram     = lower typedFormula
+    targetProgram  = emitGlsl ssaProgram
 
     unwrap (Right x) = x

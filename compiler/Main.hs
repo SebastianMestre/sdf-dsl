@@ -1,6 +1,10 @@
 import Shape
-import VectorCompiler
 import Crosscutting
+import Expand (expand)
+import Typechecking (infer)
+import Lower (lower)
+import Codegen (emitGlsl)
+
 
 dedo0 = translate (-0.070, 0.26, -0.015) $ sphere 0.06
 dedo1 = translate (-0.020, 0.29, -0.010) $ sphere 0.07
@@ -28,10 +32,10 @@ unMaybe (Right x) = x
 
 programa :: String
 programa = paso4
-  where paso1 = VectorCompiler.expand patita
-        paso2 = VectorCompiler.infer [("pos", VectorF)] paso1
-        paso3 = VectorCompiler.lower (snd $ unMaybe paso2)
-        paso4 = VectorCompiler.emitGlsl paso3
+  where paso1 = expand patita
+        paso2 = snd $ unMaybe $ infer [("pos", VectorF)] paso1
+        paso3 = lower paso2
+        paso4 = emitGlsl paso3
 
 main :: IO ()
 main = putStrLn programa
