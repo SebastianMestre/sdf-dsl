@@ -12,15 +12,17 @@ module Shape (
     rotateZ,
     translate,
     inflate,
+    repeatX,
+
     union,
     smoothUnion,
 
     compile
   ) where
 
-import Ast
+import           Ast
 import qualified VectorCompiler
-import Crosscutting
+import           Crosscutting
 
 point :: Shape
 point = PointS
@@ -53,6 +55,8 @@ translate = TranslatedS
 rotateZ :: Float -> Shape -> Shape
 rotateZ = RotatedXyS
 
+repeatX :: Float -> Shape -> Shape
+repeatX = RepeatedXS
 
 compile :: Shape -> String
 compile s = targetProgram
