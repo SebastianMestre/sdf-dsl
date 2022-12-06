@@ -39,7 +39,7 @@ instance Num Formula where
   x * y         = AppF () MulF [x, y]
   x - y         = AppF () SubF [x, y]
   negate x      = 0 - x
-  abs           = undefined
+  abs x         = AppF () AbsF [x]
   fromInteger n = LitF () (fromInteger n :: Float)
   signum        = undefined
 

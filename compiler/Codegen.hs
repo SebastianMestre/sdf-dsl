@@ -63,6 +63,7 @@ emitGlsl cs = concat $ map (++"\n") $ map (uncurry go) $ zip [0..] cs
   renderFun MaxF    = glIdentifier "max"
   renderFun ModF    = glIdentifier "mod"
   renderFun MixF    = glIdentifier "mix"
+  renderFun AbsF    = glIdentifier "abs"
   -- renderFun f       = show f
 
   renderDecl ty idx expr = glDecl ty (renderAtom (TaVar idx)) expr
