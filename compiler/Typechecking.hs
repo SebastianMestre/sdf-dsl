@@ -1,6 +1,6 @@
 module Typechecking where
 
-import Formula
+import FormulaAst
 import Crosscutting
 import Data.Maybe
 
@@ -72,8 +72,8 @@ infer env (AppF () f as) = do
   let t = returnType chosen
   return (t, AppF t f args)
 
-infer env (LitF x) = do
-  return (ScalarF, LitF x)
+infer env (LitF () x) = do
+  return (ScalarF, LitF ScalarF x)
 
 infer env (PrjF () field e) = do
   (t, e') <- infer env e

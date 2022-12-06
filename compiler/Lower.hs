@@ -1,6 +1,6 @@
 module Lower where
 
-import Formula
+import FormulaAst
 import Crosscutting
 import qualified VarLookup
 import Ir
@@ -39,7 +39,7 @@ lower f = fst $ snd $ runState (go defaultEnv f) defaultState
   go env (VarF t v) = do
     let i1 = VarLookup.get v env
     return $ TaVar i1
-  go env (LitF x) = do
+  go env (LitF ty x) = do
     return $ TaConst x
   go env (AppF t op as) = do
     is <- mapM (go env) as

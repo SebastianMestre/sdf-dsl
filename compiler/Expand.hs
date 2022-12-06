@@ -1,70 +1,49 @@
 module Expand where
 
-import Ast
+import ShapeAst
 import Formula
 import Crosscutting
 
-expand :: Shape -> Form ()
-expand PointS                 = lengthF pos
-expand (TranslatedS x s)      = withPos (pos - vec x) s
-expand (InflatedS x s)        = expand s - lit x
-expand (ExtrudedS x s)        = withPos (extrude x pos) s
-expand (RotatedXyS a s)       = withPos (mat (makeRotationMatrix a) * pos) s
-expand (RepeatedXS x s)       = withPos (periodic x pos) s
-expand (UnionS s1 s2)         = minF (expand s1) (expand s2)
-expand (IntersectionS s1 s2)  = maxF (expand s1) (expand s2)
-expand (SmoothUnionS k s1 s2) = smoothMin k (expand s1) (expand s2)
-
-withPos :: Form () -> Shape -> Form ()
-withPos f s = letF VectorF "pos" f $ expand s
-
-extrude :: Float3 -> Form () -> Form ()
-extrude x f = f - clampF f (vec $ negate3 x) (vec x)
-
-periodic :: Float -> Form () -> Form ()
-periodic x f = updX (\x -> modF (x + offset) period - offset) f
-  where period = lit x
-        offset = lit (x / 2)
-
-smoothMin :: Float -> Form () -> Form () -> Form ()
-smoothMin k a b =
-  letF ScalarF "a" a $
-  letF ScalarF "b" b $
-  letF ScalarF "h" (clampF (lit 0.5 + lit 0.5 * (vb - va) / lit k) 0 1) $
-  mixF vb va vh - lit k * vh * (1 - vh)
-  where va = varF "a"
-        vb = varF "b"
-        vh = varF "h"
-
-
-varF = VarF ()
-appF = AppF ()
-letF = LetF ()
-prjF = PrjF ()
-
 pos = varF "pos"
 
-getX = prjF XF
-getY = prjF YF
-getZ = prjF ZF
+expand :: Shape -> Formula
+expand PointS                 = lengthF pos
+expand (TranslatedS x s)      = withPos (pos - vec x) (expand s)
+expand (InflatedS x s)        = expand s - constantF x
+expand (ExtrudedS x s)        = withPos (extrude x pos) (expand s)
+expand (RotatedXyS a s)       = withPos (mat (makeRotationMatrix a) * pos) (expand s)
+expand (RepeatedXS x s)       = withPos (periodic x pos) (expand s)
+expand (UnionS s1 s2)         = minF (expand s1) (expand s2)
+expand (IntersectionS s1 s2)  = maxF (expand s1) (expand s2)
+expand (SmoothUnionS k s1 s2) =
+  withLocal "a" ScalarF (expand s1) $ \a ->
+  withLocal "b" ScalarF (expand s2) $ \b ->
+  withLocal "h" ScalarF (clampF (0.5 + 0.5 * (b - a) / constantF k) 0 1) $ \h ->
+  mixF b a h - constantF k * h * (1 - h)
 
-lengthF f = appF LengthF [f]
-minF f1 f2 = appF MinF [f1, f2]
-maxF f1 f2 = appF MaxF [f1, f2]
-modF x y = appF ModF [x, y]
-clampF f1 f2 f3 = appF ClampF [f1, f2, f3]
-mixF f1 f2 f3 = appF MixF [f1, f2, f3]
+extrude :: Float3 -> Formula -> Formula
+extrude x f = f - clampF f (vec $ negate3 x) (vec x)
 
-updX f e =
-  letF VectorF "__old" e $
-  appF MkVecF [f $ getX old, getY old, getZ old]
-  where old = varF "__old"
+periodic :: Float -> Formula -> Formula
+periodic x f =
+  withLocal "old" VectorF f $ \old ->
+  let period = constantF x
+      offset = constantF (x / 2)
+      newX = modF ((getX old) + offset) period - offset
+      newY = getY old
+      newZ = getZ old
+  in mkVecF newX newY newZ
 
-lit x = LitF x
-vec (x, y, z) = appF MkVecF [lit x, lit y, lit z]
-mat (vx, vy, vz) = appF MkMatF [vec vx, vec vy, vec vz]
+withPos :: Formula -> Formula -> Formula
+withPos pos' t = withLocal "pos" VectorF pos' (const t)
 
-makeRotationMatrix :: Float -> (Float3, Float3, Float3)
+withLocal :: String -> TypeF -> Formula -> (Formula -> Formula) -> Formula
+withLocal v ty t f = letF ty v t (f (varF v))
+
+vec (x, y, z)    = mkVecF (constantF x) (constantF y) (constantF z)
+mat (vx, vy, vz) = mkMatF (vec vx) (vec vy) (vec vz)
+
+makeRotationMatrix :: Float -> Float3x3
 makeRotationMatrix angle =
   ((cosAngle, -sinAngle, 0),
    (sinAngle,  cosAngle, 0),

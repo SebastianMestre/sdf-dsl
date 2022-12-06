@@ -24,7 +24,7 @@ module Shape (
     compile
   ) where
 
-import Ast
+import ShapeAst
 import Crosscutting
 
 import Expand (expand)

@@ -1,4 +1,4 @@
-module Ast where
+module ShapeAst where
 
 type Float3 = (Float, Float, Float)
 
