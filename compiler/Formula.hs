@@ -3,13 +3,16 @@
 module Formula
   ( Formula
 
-  , varF
+  -- world position
+  , pos
+
+  -- scalar constant
   , constantF
 
-  , letF
+  -- variable declaration
+  , withLocal
 
   -- vector operations
-  , projectionF
   , getX
   , getY
   , getZ
@@ -18,11 +21,11 @@ module Formula
 
   -- function calls
   , lengthF
+  , modF
   , minF
   , maxF
-  , modF
-  , mixF
   , clampF
+  , mixF
 
   ) where
 
@@ -44,22 +47,24 @@ instance Fractional Formula where
   x / y          = AppF () DivF [x, y]
   fromRational n = LitF () (fromRational n :: Float)
 
-appF = AppF ()
-varF = VarF ()
+pos :: Formula
+pos = VarF () "pos"
+
+constantF :: Float -> Formula
 constantF = LitF ()
-letF = LetF ()
 
-projectionF = PrjF ()
-getX = projectionF XF
-getY = projectionF YF
-getZ = projectionF ZF
-mkVecF x y z = appF MkVecF [x, y, z]
-mkMatF x y z = appF MkMatF [x, y, z]
+withLocal :: String -> TypeF -> Formula -> (Formula -> Formula) -> Formula
+withLocal v ty t f = LetF () ty v t (f (VarF () v))
 
-lengthF f = appF LengthF [f]
-minF f1 f2 = appF MinF [f1, f2]
-maxF f1 f2 = appF MaxF [f1, f2]
-modF x y = appF ModF [x, y]
-clampF f1 f2 f3 = appF ClampF [f1, f2, f3]
-mixF f1 f2 f3 = appF MixF [f1, f2, f3]
+getX = PrjF () XF
+getY = PrjF () YF
+getZ = PrjF () ZF
+mkVecF x y z = AppF () MkVecF [x, y, z]
+mkMatF x y z = AppF () MkMatF [x, y, z]
 
+lengthF t    = AppF () LengthF [t]
+modF t u     = AppF () ModF [t, u]
+minF t u     = AppF () MinF [t, u]
+maxF t u     = AppF () MaxF [t, u]
+clampF t u s = AppF () ClampF [t, u, s]
+mixF t u s   = AppF () MixF [t, u, s]

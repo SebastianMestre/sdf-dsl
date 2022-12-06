@@ -61,7 +61,14 @@ translate :: Float3 -> Shape -> Shape
 translate = TranslatedS
 
 rotateZ :: Float -> Shape -> Shape
-rotateZ = RotatedXyS
+rotateZ angle = TransformedS rotationMatrix
+  where
+  rotationMatrix =
+    ((cosAngle, -sinAngle, 0),
+     (sinAngle,  cosAngle, 0),
+     (0,         0,        1))
+  cosAngle = cos angle
+  sinAngle = sin angle
 
 repeatX :: Float -> Shape -> Shape
 repeatX = RepeatedXS

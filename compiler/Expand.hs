@@ -4,14 +4,12 @@ import ShapeAst
 import Formula
 import Crosscutting
 
-pos = varF "pos"
-
 expand :: Shape -> Formula
 expand PointS                 = lengthF pos
 expand (TranslatedS x s)      = withPos (pos - vec x) (expand s)
 expand (InflatedS x s)        = expand s - constantF x
 expand (ExtrudedS x s)        = withPos (extrude x pos) (expand s)
-expand (RotatedXyS a s)       = withPos (mat (makeRotationMatrix a) * pos) (expand s)
+expand (TransformedS a s)     = withPos (mat (transpose3 a) * pos) (expand s)
 expand (RepeatedXS x s)       = withPos (periodic x pos) (expand s)
 expand (UnionS s1 s2)         = minF (expand s1) (expand s2)
 expand (IntersectionS s1 s2)  = maxF (expand s1) (expand s2)
@@ -37,19 +35,12 @@ periodic x f =
 withPos :: Formula -> Formula -> Formula
 withPos pos' t = withLocal "pos" VectorF pos' (const t)
 
-withLocal :: String -> TypeF -> Formula -> (Formula -> Formula) -> Formula
-withLocal v ty t f = letF ty v t (f (varF v))
 
 vec (x, y, z)    = mkVecF (constantF x) (constantF y) (constantF z)
 mat (vx, vy, vz) = mkMatF (vec vx) (vec vy) (vec vz)
 
-makeRotationMatrix :: Float -> Float3x3
-makeRotationMatrix angle =
-  ((cosAngle, -sinAngle, 0),
-   (sinAngle,  cosAngle, 0),
-   (0,         0,        1))
-  where
-  cosAngle = cos (-angle)
-  sinAngle = sin (-angle)
-
+negate3 :: Float3 -> Float3
 negate3 (x, y, z) = (-x, -y, -z)
+
+transpose3 :: Float3x3 -> Float3x3
+transpose3 ((a11, a12, a13), (a21, a22, a23), (a31, a32, a33)) = ((a11, a21, a31), (a12, a22, a32), (a13, a23, a33))

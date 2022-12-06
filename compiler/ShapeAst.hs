@@ -10,7 +10,7 @@ data Shape
 
 -- Positioning
   | TranslatedS Float3 Shape       -- Moves a shape in space
-  | RotatedXyS Float Shape         -- rotates in the xy plane
+  | TransformedS Float3x3 Shape       -- Applies a linear transformation (assumes orthonormal matrix)
 
 -- Shape manipulation
   | ExtrudedS Float3 Shape         -- Separates two halves of a shape, and fills in the middle
