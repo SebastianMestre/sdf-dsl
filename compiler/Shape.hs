@@ -3,20 +3,24 @@ module Shape (
     Float3,
     Float3x3,
 
+    -- primitives
     point,
     sphere,
     box,
     roundbox,
     capsule,
 
+    -- transformations
     rotateZ,
     translate,
     inflate,
     repeatX,
 
+    -- combinators
     union,
     smoothUnion,
 
+    -- evaluation
     compile
   ) where
 

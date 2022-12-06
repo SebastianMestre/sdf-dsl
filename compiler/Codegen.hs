@@ -78,6 +78,7 @@ emitGlsl cs = concat $ map (++"\n") $ map (uncurry go) $ zip [0..] cs
   renderField YF = glIdentifier "y"
   renderField ZF = glIdentifier "z"
 
+  -- DSL Shallow para expresiones GLSL
   glFieldAccess field lhs = lhs ++ "." ++ field
   glBinop op lhs rhs = lhs ++ " " ++ op ++ " " ++ rhs
   glDecl ty name expr = concat [ty, " ", name, " = ", expr, ";"]

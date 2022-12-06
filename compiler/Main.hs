@@ -1,5 +1,4 @@
 import Shape
-import Crosscutting
 import Expand (expand)
 import Typechecking (infer)
 import Lower (lower)
@@ -28,14 +27,8 @@ brazo = smoothUnion 0.03 forma dedos
 
 patita = union [brazo, almohadillas, palma]
 
-unMaybe (Right x) = x
-
 programa :: String
-programa = paso4
-  where paso1 = expand patita
-        paso2 = snd $ unMaybe $ infer [("pos", VectorF)] paso1
-        paso3 = lower paso2
-        paso4 = emitGlsl paso3
+programa = compile patita
 
 main :: IO ()
 main = putStrLn programa
