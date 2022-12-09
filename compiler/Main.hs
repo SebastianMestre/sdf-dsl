@@ -1,8 +1,5 @@
 import Shape
-import Expand (expand)
-import Typechecking (infer)
-import Lower (lower)
-import Codegen (emitGlsl)
+import Data.Text.Lazy
 
 
 dedo0 = translate (-0.070, 0.26, -0.015) $ sphere 0.06
@@ -30,5 +27,21 @@ patita = union [brazo, almohadillas, palma]
 programa :: String
 programa = compile patita
 
+
+templatize :: String -> String -> String -> String
+templatize pattern templateFile replacement =
+  unpack (replace (pack pattern) (pack replacement) (pack templateFile))
+
+saveAt :: Shape -> String -> String -> IO ()
+saveAt shape input output = do
+  template <- readFile input
+  let replacement = compile shape
+  let result = templatize "//{{+}}//" template replacement
+  writeFile output result
+
+save :: Shape -> IO ()
+save shape = saveAt shape "../viewer/index.template.html" "../viewer/index.html"
+
 main :: IO ()
-main = putStrLn programa
+main = do
+  save patita
