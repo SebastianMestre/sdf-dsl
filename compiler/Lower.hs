@@ -6,21 +6,21 @@ import qualified VarLookup
 import Ir
 import Control.Monad.State
 
-type S = ([Tac], VarId)
+type S = ([Ssa], VarId)
 
 type GEnv = VarLookup.Lookup VarId
 
-addTac :: Tac -> State S VarId
-addTac x = do
+addSsa :: Ssa -> State S VarId
+addSsa x = do
   (xs, n) <- get
   put (xs ++ [x], n+1)
   return n
 
-makeVar :: TacArg -> State S VarId
+makeVar :: SsaArg -> State S VarId
 makeVar (TaVar i) = return i
-makeVar (TaConst x) = addTac (ConstT x)
+makeVar (TaConst x) = addSsa (ConstT x)
 
-lower :: Form TypeF -> [Tac]
+lower :: Form TypeF -> [Ssa]
 lower f = fst $ snd $ runState (go defaultEnv f) defaultState
   where
 
@@ -30,7 +30,7 @@ lower f = fst $ snd $ runState (go defaultEnv f) defaultState
   defaultState :: S
   defaultState = ([VarT VectorF "pos"], 1)
 
-  go :: GEnv -> Form TypeF -> State S TacArg
+  go :: GEnv -> Form TypeF -> State S SsaArg
   go env (LetF t h x f1 f2) = do
     a1 <- go env f1
     i1 <- makeVar a1
@@ -43,9 +43,9 @@ lower f = fst $ snd $ runState (go defaultEnv f) defaultState
     return $ TaConst x
   go env (AppF t op as) = do
     is <- mapM (go env) as
-    i <- addTac (AppT t op is)
+    i <- addSsa (AppT t op is)
     return $ TaVar i
   go env (PrjF _ field e1) = do
     i1 <- go env e1
-    i <- addTac (PrjT field i1)
+    i <- addSsa (PrjT field i1)
     return $ TaVar i

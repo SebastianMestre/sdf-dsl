@@ -26,8 +26,8 @@ language includes concepts that are familiar to programmers and computer
 scientists, such as function application and let-bindings. This language is meant
 for internal usage only.
 
-The third language, called `Tac` (short for 'Three Address Code') is an SSA form
-language, suitable for translating into our target languages.
+The third language, called `Ssa` is an SSA form language, suitable for
+translating into our target languages.
 
 ## Passes
 
@@ -39,5 +39,5 @@ the major passes, and a short description of each one.
 defines what the SDF of each primitive is.
 - Typecheck: Decorates `Form` expressions with type annotations, which are used
 during code generation.
-- Lower: Converts `Form` expressions into sequences of equivalent `Tac` programs.
-- Codegen: Converts `Tac` programs to equivalent GLSL or ECMAScript programs.
+- Lower: Converts `Form` expressions into sequences of equivalent `Ssa` programs.
+- Codegen: Converts `Ssa` programs to equivalent GLSL or ECMAScript programs.

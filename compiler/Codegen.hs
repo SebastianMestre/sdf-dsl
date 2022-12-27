@@ -2,83 +2,69 @@ module Codegen
   ( emitGlsl
   ) where
 
-import Ir
+-- Este modulo implementa la ultima etapa de compilacion.
+-- Especificamente, compila la representacion intermedia
+-- `Ssa` al lenguage objetivo, GLSL.
+
 import Crosscutting
-import Data.List
+import GlPrinter
+import Ir
 
-emitGlsl :: [Tac] -> String
-emitGlsl cs = concat $ map (++"\n") $ map (uncurry go) $ zip [0..] cs
+-- Dada una lista de instrucciones, genera un programa en
+-- GLSL que les corresponde.
+emitGlsl :: [Ssa] -> String
+emitGlsl cs = showStmt block
   where
+  block = foldl1 glSeq statements
+  statements = map (uncurry go) $ zip [0..] cs
+  numberedD
 
-  go idx (ConstT x)    = renderDecl (glConstQual glFloat) idx (show x)
-  go idx (VarT t x)    = renderDecl (renderType t) idx x
-  go idx (AppT t f as) = renderDecl (renderType t) idx (renderApp f as)
-  go idx (PrjT field a) = renderDecl glFloat idx (renderPrj field a)
+go :: VarId -> Ssa -> GlStmt
+go idx (ConstT x)     = renderConstDecl glFloat idx (glFloatLiteral x)
+go idx (VarT t x)     = renderDecl (renderType t) idx (glNameExpr $ glName x)
+go idx (AppT t f as)  = renderDecl (renderType t) idx (renderApp f as)
+go idx (PrjT field a) = renderDecl glFloat idx (renderPrj field a)
 
-  renderApp SubF [a0, a1] = glBinop "-" (renderAtom a0) (renderAtom a1)
-  renderApp AddF [a0, a1] = glBinop "+" (renderAtom a0) (renderAtom a1)
-  renderApp MulF [a0, a1] = glBinop "*" (renderAtom a0) (renderAtom a1)
-  renderApp DivF [a0, a1] = glBinop "/" (renderAtom a0) (renderAtom a1)
-  renderApp f as = glCallExpr (renderFun f) (map renderAtom as)
+renderApp :: FunF -> [SsaArg] -> GlExpr
+renderApp SubF [a0, a1] = glBinop "-" (renderAtom a0) (renderAtom a1)
+renderApp AddF [a0, a1] = glBinop "+" (renderAtom a0) (renderAtom a1)
+renderApp MulF [a0, a1] = glBinop "*" (renderAtom a0) (renderAtom a1)
+renderApp DivF [a0, a1] = glBinop "/" (renderAtom a0) (renderAtom a1)
+renderApp f as = glCallExpr (renderFun f) (map renderAtom as)
 
-  renderPrj field a = glFieldAccess (renderField field) (renderAtom a)
+renderPrj :: FieldF -> SsaArg -> GlExpr
+renderPrj field a = glFieldAccess (renderField field) (renderAtom a)
 
-  renderFun LengthF = glIdentifier "length"
-  renderFun MkVecF  = glIdentifier "vec3"
-  renderFun MkMatF  = glIdentifier "mat3"
-  renderFun ClampF  = glIdentifier "clamp"
-  renderFun MinF    = glIdentifier "min"
-  renderFun MaxF    = glIdentifier "max"
-  renderFun ModF    = glIdentifier "mod"
-  renderFun MixF    = glIdentifier "mix"
-  renderFun AbsF    = glIdentifier "abs"
-  -- renderFun f       = show f
+renderFun :: FunF -> GlName
+renderFun LengthF = glName "length"
+renderFun MkVecF  = glName "vec3"
+renderFun MkMatF  = glName "mat3"
+renderFun ClampF  = glName "clamp"
+renderFun MinF    = glName "min"
+renderFun MaxF    = glName "max"
+renderFun ModF    = glName "mod"
+renderFun MixF    = glName "mix"
+renderFun AbsF    = glName "abs"
 
-  renderDecl ty idx expr = glDecl ty (renderAtom (TaVar idx)) expr
+renderDecl :: GlType -> VarId -> GlExpr -> GlStmt
+renderDecl ty idx expr = glDecl ty (renderVar idx) expr
 
-  renderType ScalarF = glFloat
-  renderType VectorF = glVec3
-  renderType MatrixF = glMat3
+renderConstDecl :: GlType -> VarId -> GlExpr -> GlStmt
+renderConstDecl ty idx expr = glConstDecl ty (renderVar idx) expr
 
-  renderAtom (TaVar n)   = glIdentifier ("v" ++ show n)
-  renderAtom (TaConst x) = glFloatLiteral x
+renderType :: TypeF -> GlType
+renderType ScalarF = glFloat
+renderType VectorF = glVec3
+renderType MatrixF = glMat3
 
-  renderField XF = glIdentifier "x"
-  renderField YF = glIdentifier "y"
-  renderField ZF = glIdentifier "z"
+renderAtom :: SsaArg -> GlExpr
+renderAtom (TaVar n)   = glNameExpr (renderVar n)
+renderAtom (TaConst x) = glFloatLiteral x
 
--- DSL Shallow para expresiones GLSL
-type GLExpr = String
-type GLStmt = String
-type GLName = String
+renderVar :: VarId -> GlName
+renderVar n = glName ("v" ++ show n)
 
-glFieldAccess :: GLName -> GLExpr -> GLExpr
-glFieldAccess field lhs = lhs ++ "." ++ field
-
-glBinop :: String -> GLExpr -> GLExpr -> GLExpr
-glBinop op lhs rhs = lhs ++ " " ++ op ++ " " ++ rhs
-
-glDecl :: GLName -> GLName -> GLExpr -> GLStmt
-glDecl ty name expr = concat [ty, " ", name, " = ", expr, ";"]
-
-glCallExpr :: GLName -> [GLExpr] -> GLExpr
-glCallExpr func args = func ++ "(" ++ (concat $ intersperse ", " $ args) ++ ")"
-
-glConstQual :: GLName -> GLName
-glConstQual ty = "const " ++ ty
-
-glFloat :: GLName
-glFloat = "float"
-
-glVec3 :: GLName
-glVec3 = "vec3"
-
-glMat3 :: GLName
-glMat3 = "mat3"
-
-glIdentifier :: String -> GLName
-glIdentifier x = x
-
-glFloatLiteral :: Float -> GLExpr
-glFloatLiteral x = show x
-
+renderField :: FieldF -> GlName
+renderField XF = glName "x"
+renderField YF = glName "y"
+renderField ZF = glName "z"
