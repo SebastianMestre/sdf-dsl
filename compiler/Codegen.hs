@@ -8,7 +8,7 @@ module Codegen
 
 import Crosscutting
 import GlPrinter
-import Ir
+import Ssa
 
 -- Dada una lista de instrucciones, genera un programa en
 -- GLSL que les corresponde.
@@ -17,7 +17,6 @@ emitGlsl cs = showStmt block
   where
   block = foldl1 glSeq statements
   statements = map (uncurry go) $ zip [0..] cs
-  numberedD
 
 go :: VarId -> Ssa -> GlStmt
 go idx (ConstT x)     = renderConstDecl glFloat idx (glFloatLiteral x)
@@ -58,8 +57,8 @@ renderType VectorF = glVec3
 renderType MatrixF = glMat3
 
 renderAtom :: SsaArg -> GlExpr
-renderAtom (TaVar n)   = glNameExpr (renderVar n)
-renderAtom (TaConst x) = glFloatLiteral x
+renderAtom (SsaVar n)   = glNameExpr (renderVar n)
+renderAtom (SsaConst x) = glFloatLiteral x
 
 renderVar :: VarId -> GlName
 renderVar n = glName ("v" ++ show n)
