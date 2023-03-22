@@ -11,7 +11,7 @@ type S = ([Ssa], VarId)
 
 type GEnv = VarLookup.Lookup VarId
 
-data NameResolution a = NR { runNameResolution :: (Genv, S) -> (a, S) }
+data NameResolution a = NR { runNameResolution :: (GEnv, S) -> (a, S) }
 
 instance Functor NameResolution where
   fmap f mx = mx >>= (return . f)
@@ -23,23 +23,29 @@ instance Applicative NameResolution where
 instance Monad NameResolution where
   return a = NR $ \(_, s) -> (a, s)
   ma >>= g = NR $ \(env, s) -> let
-    (a, s') = runNameResolution f (env, s)
+    (a, s') = runNameResolution ma (env, s)
     (b, s'') = runNameResolution (g a) (env, s')
     in (b, s'')
 
 getState :: NameResolution S
 getState = NR $ \(_, s) -> (s, s)
 
+putState :: S -> NameResolution ()
+putState s = NR $ \_ -> ((), s)
+
 getEnv :: NameResolution GEnv
-getSnv = NR $ \(env, s) -> (env, s)
+getEnv = NR $ \(env, s) -> (env, s)
+
+extendEnv :: (String, VarId) -> NameResolution a -> NameResolution a
+extendEnv p ma = NR $ \(env, s) -> runNameResolution ma (VarLookup.extend p env, s)
 
 addSsa :: Ssa -> NameResolution VarId
 addSsa x = do
   (xs, n) <- getState
-  put (xs ++ [x], n+1)
+  putState (xs ++ [x], n+1)
   return n
 
-makeVar :: SsaArg -> State S VarId
+makeVar :: SsaArg -> NameResolution VarId
 makeVar (SsaVar i) = return i
 makeVar (SsaConst x) = addSsa (ConstT x)
 
@@ -47,7 +53,7 @@ lower :: Form TypeF -> [Ssa]
 lower f = ssa
   where
 
-  (lastValue, (ssa, _)) = runNameResolution (go f) defaultState 
+  (lastValue, (ssa, _)) = runNameResolution (go f) initial
 
   initial = (defaultEnv, defaultState)
 
@@ -60,8 +66,8 @@ lower f = ssa
   go :: Form TypeF -> NameResolution SsaArg
   go (VarF t v)         = SsaVar <$> VarLookup.get v <$> getEnv
   go (LitF ty x)        = SsaConst <$> pure x
-  go (AppF t op as)     = SsaVar <$> addSsa (AppT t op <$> mapM go as)
-  go (PrjF _ field e1)  = SsaVar <$> addSsa (PrjT field <$> go e1)
+  go (AppF t op as)     = SsaVar <$> (addSsa =<< (AppT t op <$> mapM go as))
+  go (PrjF _ field e1)  = SsaVar <$> (addSsa =<< (PrjT field <$> go e1))
   go (LetF t h x f1 f2) = do
     a1 <- go f1
     i1 <- makeVar a1
