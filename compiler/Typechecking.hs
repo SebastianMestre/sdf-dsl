@@ -43,7 +43,7 @@ infer :: TEnv -> Form () -> Err (TypeF, Form TypeF)
 infer env (LetF () t x e1 e2) = do
   (t1', e1') <- infer env e1
   if t1' /= t
-    then fail "mismatched types"
+    then error "mismatched types"
     else return ()
   (t2', e2') <- infer ((x, t) : env) e2 
   return (t2', LetF t2' t x e1' e2')
@@ -51,7 +51,7 @@ infer env (LetF () t x e1 e2) = do
 infer env (VarF () x) = do
   let mt' = lookup x env
   t' <- if isNothing mt'
-    then fail ("undefined variable: " ++ x)
+    then error ("undefined variable: " ++ x)
     else return $ fromJust mt'
   return (t', VarF t' x)
 
@@ -66,8 +66,8 @@ infer env (AppF () f as) = do
 
   chosen <- case viable of
     [x] -> return x
-    []  -> fail ("no overloads for " ++ show f ++ " argument types are: " ++ show argTypes ++ " args are: " ++ show args)
-    _   -> fail "ambiguous overloads"
+    []  -> error ("no overloads for " ++ show f ++ " argument types are: " ++ show argTypes ++ " args are: " ++ show args)
+    _   -> error "ambiguous overloads"
 
   let t = returnType chosen
   return (t, AppF t f args)
@@ -79,7 +79,7 @@ infer env (PrjF () field e) = do
   (t, e') <- infer env e
 
   inner <- if t /= VectorF
-    then fail "accessed fields of something that is not a vector" -- TODO: error message
+    then error "accessed fields of something that is not a vector" -- TODO: error message
     else return ()
 
   return $ (ScalarF, PrjF ScalarF field e')
