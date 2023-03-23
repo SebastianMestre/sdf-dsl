@@ -45,10 +45,6 @@ addSsa x = do
   putState (xs ++ [x], n+1)
   return n
 
-makeVar :: SsaArg -> NameResolution VarId
-makeVar (SsaVar i) = return i
-makeVar (SsaConst x) = addSsa (ConstT x)
-
 stringifyVar i = VarT undefined ("v" ++ show i)
 
 lower :: Form TypeF -> (Ssa, [Ssa])
@@ -68,8 +64,8 @@ lower f = (lastValue, ssa)
   go' :: Form TypeF -> NameResolution Ssa
   go' (VarF t v)         = stringifyVar <$> VarLookup.get v <$> getEnv
   go' (LitF ty x)        = ConstT <$> pure x
-  go' (AppF t op as)     = RichAppT t op <$> mapM go' as
-  go' (PrjF _ field e1)  = RichPrjT field <$> go' e1
+  go' (AppF t op as)     = AppT t op <$> mapM go' as
+  go' (PrjF _ field e1)  = PrjT field <$> go' e1
   go' (LetF t h x f1 f2) = do
     i1 <- addSsa =<< go' f1
     i2 <- extendEnv (x, i1) $ go' f2
