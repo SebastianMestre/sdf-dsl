@@ -53,6 +53,8 @@ reify :: SsaArg -> Ssa
 reify (SsaVar i)   = VarT undefined ("v" ++ show i)
 reify (SsaConst x) = ConstT x
 
+stringifyVar i = VarT undefined ("v" ++ show i)
+
 lower :: Form TypeF -> [Ssa]
 lower f = ssa
   where
@@ -67,13 +69,19 @@ lower f = ssa
   defaultState :: S
   defaultState = ([VarT VectorF "pos"], 1)
 
-  go :: Form TypeF -> NameResolution SsaArg
-  go (VarF t v)         = SsaVar <$> VarLookup.get v <$> getEnv
-  go (LitF ty x)        = SsaConst <$> pure x
-  go (AppF t op as)     = SsaVar <$> (addSsa =<< (RichAppT t op <$> fmap reify <$> mapM go as))
-  go (PrjF _ field e1)  = SsaVar <$> (addSsa =<< (RichPrjT field <$> reify <$> go e1))
-  go (LetF t h x f1 f2) = do
+  go' :: Form TypeF -> NameResolution Ssa
+  go' (VarF t v)         = stringifyVar <$> VarLookup.get v <$> getEnv
+  go' (LitF ty x)        = ConstT <$> pure x
+  go' (AppF t op as)     = RichAppT t op <$> mapM go' as
+  go' (PrjF _ field e1)  = RichPrjT field <$> go' e1
+  go' (LetF t h x f1 f2) = do
     a1 <- go f1
     i1 <- makeVar a1
-    i2 <- extendEnv (x, i1) $ go f2
+    i2 <- extendEnv (x, i1) $ go' f2
     return i2
+
+  go :: Form TypeF -> NameResolution SsaArg
+  go f = do
+    s <- go' f
+    i <- addSsa s
+    return $ SsaVar i
