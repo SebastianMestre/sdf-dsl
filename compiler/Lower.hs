@@ -50,7 +50,8 @@ makeVar (SsaVar i) = return i
 makeVar (SsaConst x) = addSsa (ConstT x)
 
 reify :: SsaArg -> Ssa
-reify (SsaVar i) = VarT undefined ("v" ++ show i)
+reify (SsaVar i)   = VarT undefined ("v" ++ show i)
+reify (SsaConst x) = ConstT x
 
 lower :: Form TypeF -> [Ssa]
 lower f = ssa
@@ -69,7 +70,7 @@ lower f = ssa
   go :: Form TypeF -> NameResolution SsaArg
   go (VarF t v)         = SsaVar <$> VarLookup.get v <$> getEnv
   go (LitF ty x)        = SsaConst <$> pure x
-  go (AppF t op as)     = SsaVar <$> (addSsa =<< (AppT t op <$> mapM go as))
+  go (AppF t op as)     = SsaVar <$> (addSsa =<< (RichAppT t op <$> fmap reify <$> mapM go as))
   go (PrjF _ field e1)  = SsaVar <$> (addSsa =<< (RichPrjT field <$> reify <$> go e1))
   go (LetF t h x f1 f2) = do
     a1 <- go f1

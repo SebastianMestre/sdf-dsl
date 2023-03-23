@@ -21,21 +21,21 @@ emitGlsl cs = showStmt block
 go :: VarId -> Ssa -> GlStmt
 go idx v@(ConstT x)         = renderConstDecl glFloat idx (renderValue v)
 go idx v@(VarT t x)         = renderDecl (renderType t) idx (renderValue v)
-go idx v@(AppT t f as)      = renderDecl (renderType t) idx (renderValue v)
+go idx v@(RichAppT t f as)  = renderDecl (renderType t) idx (renderValue v)
 go idx v@(RichPrjT field a) = renderDecl glFloat idx (renderValue v)
 
 renderValue :: Ssa -> GlExpr
 renderValue (ConstT x)         = glFloatLiteral x
 renderValue (VarT t x)         = glNameExpr $ glName x
-renderValue (AppT t f as)      = renderApp f as
+renderValue (RichAppT t f as)  = renderRichApp f as
 renderValue (RichPrjT field a) = glFieldAccess (renderField field) (renderValue a)
 
-renderApp :: FunF -> [SsaArg] -> GlExpr
-renderApp SubF [a0, a1] = glBinop "-" (renderAtom a0) (renderAtom a1)
-renderApp AddF [a0, a1] = glBinop "+" (renderAtom a0) (renderAtom a1)
-renderApp MulF [a0, a1] = glBinop "*" (renderAtom a0) (renderAtom a1)
-renderApp DivF [a0, a1] = glBinop "/" (renderAtom a0) (renderAtom a1)
-renderApp f as = glCallExpr (renderFun f) (map renderAtom as)
+renderRichApp :: FunF -> [Ssa] -> GlExpr
+renderRichApp SubF [a0, a1] = glBinop "-" (renderValue a0) (renderValue a1)
+renderRichApp AddF [a0, a1] = glBinop "+" (renderValue a0) (renderValue a1)
+renderRichApp MulF [a0, a1] = glBinop "*" (renderValue a0) (renderValue a1)
+renderRichApp DivF [a0, a1] = glBinop "/" (renderValue a0) (renderValue a1)
+renderRichApp f as = glCallExpr (renderFun f) (map renderValue as)
 
 renderFun :: FunF -> GlName
 renderFun LengthF = glName "length"

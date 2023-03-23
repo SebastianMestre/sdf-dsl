@@ -72,7 +72,7 @@ glFieldAccess :: GlName -> GlExpr -> GlExpr
 glFieldAccess field lhs = GlExpr $ (showExpr lhs) ++ "." ++ (showName field)
 
 glBinop :: String -> GlExpr -> GlExpr -> GlExpr
-glBinop op lhs rhs = GlExpr $ (showExpr lhs) ++ " " ++ op ++ " " ++ (showExpr rhs)
+glBinop op lhs rhs = GlExpr $ "(" ++ (showExpr lhs) ++ " " ++ op ++ " " ++ (showExpr rhs) ++ ")"
 
 glCallExpr :: GlName -> [GlExpr] -> GlExpr
 glCallExpr func args = GlExpr $ (showName func) ++ "(" ++ (concat $ intersperse ", " $ map showExpr args) ++ ")"

@@ -20,7 +20,7 @@ data SsaArg = SsaVar VarId | SsaConst Float
   deriving Show
 
 data Ssa
-  = AppT TypeF FunF [SsaArg]
+  = RichAppT TypeF FunF [Ssa]
   | VarT TypeF Name
   | ConstT Float
   | RichPrjT FieldF Ssa
