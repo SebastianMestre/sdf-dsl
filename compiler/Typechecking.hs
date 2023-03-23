@@ -4,19 +4,34 @@ import FormulaAst
 import Crosscutting
 import Data.Maybe
 
+{-
+
+Este modulo implementa un typechecker para el lenguage
+intermedio. En el lenguaje que se le presenta al usuario
+no es posible escribir terminos mal tipados. La principal
+utilidad es detectar errores en el propio compilador.
+
+Para permitir una expresion natural y similar a GLSL,
+tenemos sobrecarga de tipos en las funciones del lenguaje.
+
+Representamos una sobrecarga de funcion con una lista de
+tipos. El ultimo representa el tipo de retorno. El resto son
+los argumentos.
+
+-}
+
+type Err = Either String
 type TEnv = [(Name, TypeF)]
-
--- First is return type, then come all the parameter types
 type Overload = [TypeF]
-
-overloadMatches :: Overload -> [TypeF] -> Bool
-overloadMatches argTypes overload = argTypes == paramTypes overload
 
 returnType :: Overload -> TypeF
 returnType = last
 
 paramTypes :: Overload -> [TypeF]
 paramTypes = init
+
+overloadMatches :: Overload -> [TypeF] -> Bool
+overloadMatches argTypes overload = argTypes == paramTypes overload
 
 overloadsOf :: FunF -> [Overload]
 overloadsOf MkVecF = [[ScalarF, ScalarF, ScalarF, VectorF]]
@@ -36,8 +51,6 @@ overloadsOf SqrtF = [[ScalarF, ScalarF]]
 overloadsOf LengthF = [[VectorF, ScalarF]]
 overloadsOf AbsF = [[ScalarF, ScalarF], [VectorF, VectorF], [MatrixF, MatrixF]]
 overloadsOf MixF = [[ScalarF, ScalarF, ScalarF, ScalarF]]
-
-type Err = Either String
 
 infer :: TEnv -> Form -> Err TypeF
 infer env (LetF t x e1 e2) = do
