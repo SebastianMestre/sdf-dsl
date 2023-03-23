@@ -39,47 +39,44 @@ overloadsOf MixF = [[ScalarF, ScalarF, ScalarF, ScalarF]]
 
 type Err = Either String
 
-infer :: TEnv -> Form () -> Err (TypeF, Form TypeF)
+infer :: TEnv -> Form () -> Err TypeF
 infer env (LetF () t x e1 e2) = do
-  (t1', e1') <- infer env e1
+  t1' <- infer env e1
   if t1' /= t
     then error "mismatched types"
     else return ()
-  (t2', e2') <- infer ((x, t) : env) e2 
-  return (t2', LetF t2' t x e1' e2')
+  t2' <- infer ((x, t) : env) e2
+  return t2'
 
 infer env (VarF () x) = do
   let mt' = lookup x env
   t' <- if isNothing mt'
     then error ("undefined variable: " ++ x)
     else return $ fromJust mt'
-  return (t', VarF t' x)
+  return t'
 
 infer env (AppF () f as) = do
-  as' <- mapM (infer env) as
-
-  let args = map snd as'
-  let argTypes = map fst as'
+  argTypes <- mapM (infer env) as
 
   let overloads = overloadsOf f 
   let viable = filter (overloadMatches argTypes) overloads
 
   chosen <- case viable of
     [x] -> return x
-    []  -> error ("no overloads for " ++ show f ++ " argument types are: " ++ show argTypes ++ " args are: " ++ show args)
+    []  -> error ("no overloads for " ++ show f ++ " argument types are: " ++ show argTypes ++ " args are: " ++ show as)
     _   -> error "ambiguous overloads"
 
   let t = returnType chosen
-  return (t, AppF t f args)
+  return t
 
 infer env (LitF () x) = do
-  return (ScalarF, LitF ScalarF x)
+  return ScalarF
 
 infer env (PrjF () field e) = do
-  (t, e') <- infer env e
+  t <- infer env e
 
   inner <- if t /= VectorF
     then error "accessed fields of something that is not a vector" -- TODO: error message
     else return ()
 
-  return $ (ScalarF, PrjF ScalarF field e')
+  return ScalarF
