@@ -19,9 +19,9 @@ type VarId = Int
 data LetT = LetT TypeF Ssa
 
 data Ssa
-  = AppT TypeF FunF [Ssa]
+  = AppT FunF [Ssa]
   | BoundT VarId
-  | FreeT TypeF Name
+  | FreeT Name
   | ConstT Float
   | PrjT FieldF Ssa
   deriving Show
