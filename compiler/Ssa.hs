@@ -16,6 +16,8 @@ import Crosscutting
 
 type VarId = Int
 
+data LetT = LetT Ssa
+
 data Ssa
   = AppT TypeF FunF [Ssa]
   | BoundT VarId

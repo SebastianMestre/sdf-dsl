@@ -7,7 +7,7 @@ import Ssa
 import Control.Monad.State
 import Control.Monad
 
-type S = ([Ssa], VarId)
+type S = ([LetT], VarId)
 
 type GEnv = VarLookup.Lookup VarId
 
@@ -39,13 +39,13 @@ getEnv = NR $ \(env, s) -> (env, s)
 extendEnv :: (String, VarId) -> NameResolution a -> NameResolution a
 extendEnv p ma = NR $ \(env, s) -> runNameResolution ma (VarLookup.extend p env, s)
 
-addSsa :: Ssa -> NameResolution VarId
+addSsa :: LetT -> NameResolution VarId
 addSsa x = do
   (xs, n) <- getState
   putState (xs ++ [x], n+1)
   return n
 
-lower :: Form TypeF -> (Ssa, [Ssa])
+lower :: Form TypeF -> (Ssa, [LetT])
 lower f = (lastValue, ssa)
   where
 
@@ -57,7 +57,7 @@ lower f = (lastValue, ssa)
   defaultEnv = VarLookup.extend ("pos", 0) $ VarLookup.empty
 
   defaultState :: S
-  defaultState = ([FreeT VectorF "pos"], 1)
+  defaultState = ([LetT $ FreeT VectorF "pos"], 1)
 
   go' :: Form TypeF -> NameResolution Ssa
   go' (VarF t v)         = BoundT <$> VarLookup.get v <$> getEnv
@@ -65,6 +65,6 @@ lower f = (lastValue, ssa)
   go' (AppF t op as)     = AppT t op <$> mapM go' as
   go' (PrjF _ field e1)  = PrjT field <$> go' e1
   go' (LetF t h x f1 f2) = do
-    i1 <- addSsa =<< go' f1
+    i1 <- addSsa =<< LetT <$> go' f1
     i2 <- extendEnv (x, i1) $ go' f2
     return i2
