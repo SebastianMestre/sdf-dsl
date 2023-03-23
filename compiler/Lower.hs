@@ -45,7 +45,7 @@ addSsa x = do
   putState (xs ++ [x], n+1)
   return n
 
-lower :: Form TypeF -> (Ssa, [LetT])
+lower :: Form a -> (Ssa, [LetT])
 lower f = (lastValue, ssa)
   where
 
@@ -59,12 +59,12 @@ lower f = (lastValue, ssa)
   defaultState :: S
   defaultState = ([LetT VectorF $ FreeT "pos"], 1)
 
-  go' :: Form TypeF -> NameResolution Ssa
-  go' (VarF t v)         = BoundT <$> VarLookup.get v <$> getEnv
-  go' (LitF ty x)        = ConstT <$> pure x
-  go' (AppF t op as)     = AppT op <$> mapM go' as
+  go' :: Form a -> NameResolution Ssa
+  go' (VarF _ v)         = BoundT <$> VarLookup.get v <$> getEnv
+  go' (LitF _ x)         = ConstT <$> pure x
+  go' (AppF _ op as)     = AppT op <$> mapM go' as
   go' (PrjF _ field e1)  = PrjT field <$> go' e1
-  go' (LetF t h x f1 f2) = do
+  go' (LetF _ h x f1 f2) = do
     i1 <- addSsa =<< LetT h <$> go' f1
     i2 <- extendEnv (x, i1) $ go' f2
     return i2
