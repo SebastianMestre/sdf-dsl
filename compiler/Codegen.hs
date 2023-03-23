@@ -19,10 +19,16 @@ emitGlsl cs = showStmt block
   statements = map (uncurry go) $ zip [0..] cs
 
 go :: VarId -> Ssa -> GlStmt
-go idx (ConstT x)     = renderConstDecl glFloat idx (glFloatLiteral x)
-go idx (VarT t x)     = renderDecl (renderType t) idx (glNameExpr $ glName x)
-go idx (AppT t f as)  = renderDecl (renderType t) idx (renderApp f as)
-go idx (PrjT field a) = renderDecl glFloat idx (renderPrj field a)
+go idx v@(ConstT x)         = renderConstDecl glFloat idx (renderValue v)
+go idx v@(VarT t x)         = renderDecl (renderType t) idx (renderValue v)
+go idx v@(AppT t f as)      = renderDecl (renderType t) idx (renderValue v)
+go idx v@(RichPrjT field a) = renderDecl glFloat idx (renderValue v)
+
+renderValue :: Ssa -> GlExpr
+renderValue (ConstT x)         = glFloatLiteral x
+renderValue (VarT t x)         = glNameExpr $ glName x
+renderValue (AppT t f as)      = renderApp f as
+renderValue (RichPrjT field a) = glFieldAccess (renderField field) (renderValue a)
 
 renderApp :: FunF -> [SsaArg] -> GlExpr
 renderApp SubF [a0, a1] = glBinop "-" (renderAtom a0) (renderAtom a1)
@@ -30,9 +36,6 @@ renderApp AddF [a0, a1] = glBinop "+" (renderAtom a0) (renderAtom a1)
 renderApp MulF [a0, a1] = glBinop "*" (renderAtom a0) (renderAtom a1)
 renderApp DivF [a0, a1] = glBinop "/" (renderAtom a0) (renderAtom a1)
 renderApp f as = glCallExpr (renderFun f) (map renderAtom as)
-
-renderPrj :: FieldF -> SsaArg -> GlExpr
-renderPrj field a = glFieldAccess (renderField field) (renderAtom a)
 
 renderFun :: FunF -> GlName
 renderFun LengthF = glName "length"

@@ -23,5 +23,5 @@ data Ssa
   = AppT TypeF FunF [SsaArg]
   | VarT TypeF Name
   | ConstT Float
-  | PrjT FieldF SsaArg
+  | RichPrjT FieldF Ssa
   deriving Show
