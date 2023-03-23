@@ -20,10 +20,10 @@ emitGlsl c cs = showStmt $ glSeq block returnStmt
   returnStmt = glReturn $ renderValue c
 
 go :: VarId -> LetT -> GlStmt
-go idx (LetT v@(ConstT x))     = renderConstDecl glFloat idx (renderValue v)
-go idx (LetT v@(FreeT t x))    = renderDecl (renderType t) idx (renderValue v)
-go idx (LetT v@(AppT t f as))  = renderDecl (renderType t) idx (renderValue v)
-go idx (LetT v@(PrjT field a)) = renderDecl glFloat idx (renderValue v)
+go idx (LetT tt v@(ConstT x))     = renderConstDecl glFloat idx (renderValue v)
+go idx (LetT tt v@(FreeT t x))    = renderDecl (renderType t) idx (renderValue v)
+go idx (LetT tt v@(AppT t f as))  = renderDecl (renderType t) idx (renderValue v)
+go idx (LetT tt v@(PrjT field a)) = renderDecl glFloat idx (renderValue v)
 
 renderValue :: Ssa -> GlExpr
 renderValue (ConstT x)     = glFloatLiteral x

@@ -57,7 +57,7 @@ lower f = (lastValue, ssa)
   defaultEnv = VarLookup.extend ("pos", 0) $ VarLookup.empty
 
   defaultState :: S
-  defaultState = ([LetT $ FreeT VectorF "pos"], 1)
+  defaultState = ([LetT VectorF $ FreeT VectorF "pos"], 1)
 
   go' :: Form TypeF -> NameResolution Ssa
   go' (VarF t v)         = BoundT <$> VarLookup.get v <$> getEnv
@@ -65,6 +65,6 @@ lower f = (lastValue, ssa)
   go' (AppF t op as)     = AppT t op <$> mapM go' as
   go' (PrjF _ field e1)  = PrjT field <$> go' e1
   go' (LetF t h x f1 f2) = do
-    i1 <- addSsa =<< LetT <$> go' f1
+    i1 <- addSsa =<< LetT h <$> go' f1
     i2 <- extendEnv (x, i1) $ go' f2
     return i2
