@@ -45,7 +45,7 @@ addDecl x = do
   putState (xs ++ [x], n+1)
   return n
 
-lower :: Form a -> (Ssa, [DeclT])
+lower :: Form -> (Ssa, [DeclT])
 lower f = (lastValue, decls)
   where
 
@@ -59,12 +59,12 @@ lower f = (lastValue, decls)
   defaultState :: S
   defaultState = ([DeclT VectorF $ FreeT "pos"], 1)
 
-  go :: Form a -> NameResolution Ssa
-  go (VarF _ v)         = BoundT <$> VarLookup.get v <$> getEnv
-  go (LitF _ x)         = ConstT <$> pure x
-  go (AppF _ op as)     = AppT op <$> mapM go as
-  go (PrjF _ field e1)  = PrjT field <$> go e1
-  go (LetF _ h x f1 f2) = do
+  go :: Form -> NameResolution Ssa
+  go (VarF v)         = BoundT <$> VarLookup.get v <$> getEnv
+  go (LitF x)         = ConstT <$> pure x
+  go (AppF op as)     = AppT op <$> mapM go as
+  go (PrjF field e1)  = PrjT field <$> go e1
+  go (LetF h x f1 f2) = do
     i1 <- addDecl =<< DeclT h <$> go f1
     i2 <- extendEnv (x, i1) $ go f2
     return i2

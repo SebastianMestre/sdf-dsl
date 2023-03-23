@@ -39,8 +39,8 @@ overloadsOf MixF = [[ScalarF, ScalarF, ScalarF, ScalarF]]
 
 type Err = Either String
 
-infer :: TEnv -> Form () -> Err TypeF
-infer env (LetF () t x e1 e2) = do
+infer :: TEnv -> Form -> Err TypeF
+infer env (LetF t x e1 e2) = do
   t1' <- infer env e1
   if t1' /= t
     then error "mismatched types"
@@ -48,14 +48,14 @@ infer env (LetF () t x e1 e2) = do
   t2' <- infer ((x, t) : env) e2
   return t2'
 
-infer env (VarF () x) = do
+infer env (VarF x) = do
   let mt' = lookup x env
   t' <- if isNothing mt'
     then error ("undefined variable: " ++ x)
     else return $ fromJust mt'
   return t'
 
-infer env (AppF () f as) = do
+infer env (AppF f as) = do
   argTypes <- mapM (infer env) as
 
   let overloads = overloadsOf f 
@@ -69,10 +69,10 @@ infer env (AppF () f as) = do
   let t = returnType chosen
   return t
 
-infer env (LitF () x) = do
+infer env (LitF x) = do
   return ScalarF
 
-infer env (PrjF () field e) = do
+infer env (PrjF field e) = do
   t <- infer env e
 
   inner <- if t /= VectorF
