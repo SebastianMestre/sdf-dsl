@@ -20,14 +20,14 @@ emitGlsl c cs = showStmt $ glSeq block returnStmt
   returnStmt = glReturn $ renderValue c
 
 go :: VarId -> Ssa -> GlStmt
-go idx v@(ConstT x)         = renderConstDecl glFloat idx (renderValue v)
-go idx v@(VarT t x)         = renderDecl (renderType t) idx (renderValue v)
+go idx v@(ConstT x)     = renderConstDecl glFloat idx (renderValue v)
+go idx v@(FreeT t x)    = renderDecl (renderType t) idx (renderValue v)
 go idx v@(AppT t f as)  = renderDecl (renderType t) idx (renderValue v)
 go idx v@(PrjT field a) = renderDecl glFloat idx (renderValue v)
 
 renderValue :: Ssa -> GlExpr
-renderValue (ConstT x)         = glFloatLiteral x
-renderValue (VarT t x)         = glNameExpr $ glName x
+renderValue (ConstT x)     = glFloatLiteral x
+renderValue (FreeT t x)    = glNameExpr $ glName x
 renderValue (AppT t f as)  = renderApp f as
 renderValue (PrjT field a) = glFieldAccess (renderField field) (renderValue a)
 
@@ -59,10 +59,6 @@ renderType :: TypeF -> GlType
 renderType ScalarF = glFloat
 renderType VectorF = glVec3
 renderType MatrixF = glMat3
-
-renderAtom :: SsaArg -> GlExpr
-renderAtom (SsaVar n)   = glNameExpr (renderVar n)
-renderAtom (SsaConst x) = glFloatLiteral x
 
 renderVar :: VarId -> GlName
 renderVar n = glName ("v" ++ show n)

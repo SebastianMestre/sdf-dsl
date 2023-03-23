@@ -45,7 +45,7 @@ addSsa x = do
   putState (xs ++ [x], n+1)
   return n
 
-stringifyVar i = VarT undefined ("v" ++ show i)
+stringifyVar i = FreeT undefined ("v" ++ show i)
 
 lower :: Form TypeF -> (Ssa, [Ssa])
 lower f = (lastValue, ssa)
@@ -59,7 +59,7 @@ lower f = (lastValue, ssa)
   defaultEnv = VarLookup.extend ("pos", 0) $ VarLookup.empty
 
   defaultState :: S
-  defaultState = ([VarT VectorF "pos"], 1)
+  defaultState = ([FreeT VectorF "pos"], 1)
 
   go' :: Form TypeF -> NameResolution Ssa
   go' (VarF t v)         = stringifyVar <$> VarLookup.get v <$> getEnv

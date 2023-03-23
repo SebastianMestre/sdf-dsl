@@ -16,12 +16,9 @@ import Crosscutting
 
 type VarId = Int
 
-data SsaArg = SsaVar VarId | SsaConst Float
-  deriving Show
-
 data Ssa
   = AppT TypeF FunF [Ssa]
-  | VarT TypeF Name
+  | FreeT TypeF Name
   | ConstT Float
   | PrjT FieldF Ssa
   deriving Show
