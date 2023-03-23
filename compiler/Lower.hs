@@ -55,7 +55,7 @@ lower :: Form TypeF -> (Ssa, [Ssa])
 lower f = (lastValue, ssa)
   where
 
-  (lastValue, (ssa, _)) = runNameResolution (go f) initial
+  (lastValue, (ssa, _)) = runNameResolution (go' f) initial
 
   initial = (defaultEnv, defaultState)
 
@@ -71,13 +71,6 @@ lower f = (lastValue, ssa)
   go' (AppF t op as)     = RichAppT t op <$> mapM go' as
   go' (PrjF _ field e1)  = RichPrjT field <$> go' e1
   go' (LetF t h x f1 f2) = do
-
     i1 <- addSsa =<< go' f1
     i2 <- extendEnv (x, i1) $ go' f2
     return i2
-
-  go :: Form TypeF -> NameResolution Ssa
-  go f = do
-    s <- go' f
-    i <- addSsa s
-    return $ stringifyVar i
