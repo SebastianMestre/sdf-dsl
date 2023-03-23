@@ -49,14 +49,10 @@ makeVar :: SsaArg -> NameResolution VarId
 makeVar (SsaVar i) = return i
 makeVar (SsaConst x) = addSsa (ConstT x)
 
-reify :: SsaArg -> Ssa
-reify (SsaVar i)   = VarT undefined ("v" ++ show i)
-reify (SsaConst x) = ConstT x
-
 stringifyVar i = VarT undefined ("v" ++ show i)
 
-lower :: Form TypeF -> [Ssa]
-lower f = ssa
+lower :: Form TypeF -> (Ssa, [Ssa])
+lower f = (lastValue, ssa)
   where
 
   (lastValue, (ssa, _)) = runNameResolution (go f) initial
@@ -75,13 +71,13 @@ lower f = ssa
   go' (AppF t op as)     = RichAppT t op <$> mapM go' as
   go' (PrjF _ field e1)  = RichPrjT field <$> go' e1
   go' (LetF t h x f1 f2) = do
-    a1 <- go f1
-    i1 <- makeVar a1
+
+    i1 <- addSsa =<< go' f1
     i2 <- extendEnv (x, i1) $ go' f2
     return i2
 
-  go :: Form TypeF -> NameResolution SsaArg
+  go :: Form TypeF -> NameResolution Ssa
   go f = do
     s <- go' f
     i <- addSsa s
-    return $ SsaVar i
+    return $ stringifyVar i

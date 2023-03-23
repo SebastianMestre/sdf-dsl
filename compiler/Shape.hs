@@ -79,8 +79,8 @@ compile s = targetProgram
     untypedFormula = expand s
     -- es medio turbio el unwrap, pero solo puede
     -- dar error si hay bugs en expand o infer.
-    typedFormula   = snd $ unwrap $ infer [("pos", VectorF)] untypedFormula
-    ssaProgram     = lower typedFormula
-    targetProgram  = emitGlsl ssaProgram
+    typedFormula                 = snd $ unwrap $ infer [("pos", VectorF)] untypedFormula
+    (lastExpression, ssaProgram) = lower typedFormula
+    targetProgram                = emitGlsl lastExpression ssaProgram
 
     unwrap (Right x) = x

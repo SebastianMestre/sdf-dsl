@@ -10,6 +10,7 @@ module GlPrinter
   , glSeq
   , glDecl
   , glConstDecl
+  , glReturn
 
   -- expresiones
   , glFieldAccess
@@ -66,6 +67,9 @@ glDecl ty name expr = GlStmt $ concat [showType ty, " ", showName name, " = ", s
 
 glConstDecl :: GlType -> GlName -> GlExpr -> GlStmt
 glConstDecl ty name expr = GlStmt $ "const " ++ (showStmt $ glDecl ty name expr)
+
+glReturn :: GlExpr -> GlStmt
+glReturn expr = GlStmt $ "return " ++ showExpr expr ++ ";"
 
 
 glFieldAccess :: GlName -> GlExpr -> GlExpr
