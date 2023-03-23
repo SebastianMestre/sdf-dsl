@@ -12,16 +12,16 @@ import Ssa
 
 -- Dada una lista de instrucciones, genera un programa en
 -- GLSL que les corresponde.
-emitGlsl :: Ssa -> [LetT] -> String
+emitGlsl :: Ssa -> [DeclT] -> String
 emitGlsl c cs = showStmt $ glSeq block returnStmt
   where
   block = foldl1 glSeq statements
   statements = map (uncurry go) $ zip [0..] cs
   returnStmt = glReturn $ renderValue c
 
-go :: VarId -> LetT -> GlStmt
-go idx (LetT t v@(ConstT _)) = renderConstDecl (renderType t) idx (renderValue v)
-go idx (LetT t v)            = renderDecl      (renderType t) idx (renderValue v)
+go :: VarId -> DeclT -> GlStmt
+go idx (DeclT t v@(ConstT _)) = renderConstDecl (renderType t) idx (renderValue v)
+go idx (DeclT t v)            = renderDecl      (renderType t) idx (renderValue v)
 
 renderValue :: Ssa -> GlExpr
 renderValue (ConstT x)     = glFloatLiteral x

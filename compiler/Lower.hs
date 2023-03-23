@@ -7,7 +7,7 @@ import Ssa
 import Control.Monad.State
 import Control.Monad
 
-type S = ([LetT], VarId)
+type S = ([DeclT], VarId)
 
 type GEnv = VarLookup.Lookup VarId
 
@@ -39,17 +39,17 @@ getEnv = NR $ \(env, s) -> (env, s)
 extendEnv :: (String, VarId) -> NameResolution a -> NameResolution a
 extendEnv p ma = NR $ \(env, s) -> runNameResolution ma (VarLookup.extend p env, s)
 
-addSsa :: LetT -> NameResolution VarId
-addSsa x = do
+addDecl :: DeclT -> NameResolution VarId
+addDecl x = do
   (xs, n) <- getState
   putState (xs ++ [x], n+1)
   return n
 
-lower :: Form a -> (Ssa, [LetT])
-lower f = (lastValue, ssa)
+lower :: Form a -> (Ssa, [DeclT])
+lower f = (lastValue, decls)
   where
 
-  (lastValue, (ssa, _)) = runNameResolution (go' f) initial
+  (lastValue, (decls, _)) = runNameResolution (go f) initial
 
   initial = (defaultEnv, defaultState)
 
@@ -57,14 +57,14 @@ lower f = (lastValue, ssa)
   defaultEnv = VarLookup.extend ("pos", 0) $ VarLookup.empty
 
   defaultState :: S
-  defaultState = ([LetT VectorF $ FreeT "pos"], 1)
+  defaultState = ([DeclT VectorF $ FreeT "pos"], 1)
 
-  go' :: Form a -> NameResolution Ssa
-  go' (VarF _ v)         = BoundT <$> VarLookup.get v <$> getEnv
-  go' (LitF _ x)         = ConstT <$> pure x
-  go' (AppF _ op as)     = AppT op <$> mapM go' as
-  go' (PrjF _ field e1)  = PrjT field <$> go' e1
-  go' (LetF _ h x f1 f2) = do
-    i1 <- addSsa =<< LetT h <$> go' f1
-    i2 <- extendEnv (x, i1) $ go' f2
+  go :: Form a -> NameResolution Ssa
+  go (VarF _ v)         = BoundT <$> VarLookup.get v <$> getEnv
+  go (LitF _ x)         = ConstT <$> pure x
+  go (AppF _ op as)     = AppT op <$> mapM go as
+  go (PrjF _ field e1)  = PrjT field <$> go e1
+  go (LetF _ h x f1 f2) = do
+    i1 <- addDecl =<< DeclT h <$> go f1
+    i2 <- extendEnv (x, i1) $ go f2
     return i2

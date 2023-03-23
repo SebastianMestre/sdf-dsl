@@ -16,7 +16,7 @@ import Crosscutting
 
 type VarId = Int
 
-data LetT = LetT TypeF Ssa
+data DeclT = DeclT TypeF Ssa
 
 data Ssa
   = AppT FunF [Ssa]
