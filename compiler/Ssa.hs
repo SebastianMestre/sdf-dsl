@@ -18,6 +18,7 @@ type VarId = Int
 
 data Ssa
   = AppT TypeF FunF [Ssa]
+  | BoundT VarId
   | FreeT TypeF Name
   | ConstT Float
   | PrjT FieldF Ssa

@@ -45,8 +45,6 @@ addSsa x = do
   putState (xs ++ [x], n+1)
   return n
 
-stringifyVar i = FreeT undefined ("v" ++ show i)
-
 lower :: Form TypeF -> (Ssa, [Ssa])
 lower f = (lastValue, ssa)
   where
@@ -62,7 +60,7 @@ lower f = (lastValue, ssa)
   defaultState = ([FreeT VectorF "pos"], 1)
 
   go' :: Form TypeF -> NameResolution Ssa
-  go' (VarF t v)         = stringifyVar <$> VarLookup.get v <$> getEnv
+  go' (VarF t v)         = BoundT <$> VarLookup.get v <$> getEnv
   go' (LitF ty x)        = ConstT <$> pure x
   go' (AppF t op as)     = AppT t op <$> mapM go' as
   go' (PrjF _ field e1)  = PrjT field <$> go' e1

@@ -28,6 +28,7 @@ go idx v@(PrjT field a) = renderDecl glFloat idx (renderValue v)
 renderValue :: Ssa -> GlExpr
 renderValue (ConstT x)     = glFloatLiteral x
 renderValue (FreeT t x)    = glNameExpr $ glName x
+renderValue (BoundT i)     = glNameExpr $ renderVar i
 renderValue (AppT t f as)  = renderApp f as
 renderValue (PrjT field a) = glFieldAccess (renderField field) (renderValue a)
 
