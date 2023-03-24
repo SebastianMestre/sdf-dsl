@@ -12,27 +12,30 @@ import Ssa
 
 -- Dada una lista de instrucciones, genera un programa en
 -- GLSL que les corresponde.
-emitGlsl :: [Ssa] -> String
-emitGlsl cs = showStmt block
+emitGlsl :: Ssa -> [DeclT] -> String
+emitGlsl c cs = showStmt $ glSeq block returnStmt
   where
   block = foldl1 glSeq statements
   statements = map (uncurry go) $ zip [0..] cs
+  returnStmt = glReturn $ renderValue c
 
-go :: VarId -> Ssa -> GlStmt
-go idx (ConstT x)     = renderConstDecl glFloat idx (glFloatLiteral x)
-go idx (VarT t x)     = renderDecl (renderType t) idx (glNameExpr $ glName x)
-go idx (AppT t f as)  = renderDecl (renderType t) idx (renderApp f as)
-go idx (PrjT field a) = renderDecl glFloat idx (renderPrj field a)
+go :: VarId -> DeclT -> GlStmt
+go idx (DeclT t v@(ConstT _)) = renderConstDecl (renderType t) idx (renderValue v)
+go idx (DeclT t v)            = renderDecl      (renderType t) idx (renderValue v)
 
-renderApp :: FunF -> [SsaArg] -> GlExpr
-renderApp SubF [a0, a1] = glBinop "-" (renderAtom a0) (renderAtom a1)
-renderApp AddF [a0, a1] = glBinop "+" (renderAtom a0) (renderAtom a1)
-renderApp MulF [a0, a1] = glBinop "*" (renderAtom a0) (renderAtom a1)
-renderApp DivF [a0, a1] = glBinop "/" (renderAtom a0) (renderAtom a1)
-renderApp f as = glCallExpr (renderFun f) (map renderAtom as)
+renderValue :: Ssa -> GlExpr
+renderValue (ConstT x)     = glFloatLiteral x
+renderValue (FreeT x)      = glNameExpr $ glName x
+renderValue (BoundT i)     = glNameExpr $ renderVar i
+renderValue (AppT f as)    = renderApp f as
+renderValue (PrjT field a) = glFieldAccess (renderField field) (renderValue a)
 
-renderPrj :: FieldF -> SsaArg -> GlExpr
-renderPrj field a = glFieldAccess (renderField field) (renderAtom a)
+renderApp :: FunF -> [Ssa] -> GlExpr
+renderApp SubF [a0, a1] = glBinop "-" (renderValue a0) (renderValue a1)
+renderApp AddF [a0, a1] = glBinop "+" (renderValue a0) (renderValue a1)
+renderApp MulF [a0, a1] = glBinop "*" (renderValue a0) (renderValue a1)
+renderApp DivF [a0, a1] = glBinop "/" (renderValue a0) (renderValue a1)
+renderApp f as = glCallExpr (renderFun f) (map renderValue as)
 
 renderFun :: FunF -> GlName
 renderFun LengthF = glName "length"
@@ -55,10 +58,6 @@ renderType :: TypeF -> GlType
 renderType ScalarF = glFloat
 renderType VectorF = glVec3
 renderType MatrixF = glMat3
-
-renderAtom :: SsaArg -> GlExpr
-renderAtom (SsaVar n)   = glNameExpr (renderVar n)
-renderAtom (SsaConst x) = glFloatLiteral x
 
 renderVar :: VarId -> GlName
 renderVar n = glName ("v" ++ show n)

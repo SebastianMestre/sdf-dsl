@@ -2,13 +2,12 @@ module Ssa where
 
 {--
 
-Este módulo define un lenguaje static single-assignment
-(SSA), que se usa como representación intermedia en la
+Este módulo define una version de Form sin let anidado
+que se usa como representación intermedia en la
 compilación a GLSL.
 
-Cada sentencia representa la asignación a una variable
-nueva, y está anotada con el tipo de la variable (excepto
-las que, por su forma, tienen un solo tipo posible).
+Los programas con variables intermedias se representan con
+`[DeclT]` y un resultado final de tipo `Ssa`.
 
 --}
 
@@ -16,12 +15,12 @@ import Crosscutting
 
 type VarId = Int
 
-data SsaArg = SsaVar VarId | SsaConst Float
-  deriving Show
+data DeclT = DeclT TypeF Ssa
 
 data Ssa
-  = AppT TypeF FunF [SsaArg]
-  | VarT TypeF Name
+  = AppT FunF [Ssa]
+  | BoundT VarId
+  | FreeT Name
   | ConstT Float
-  | PrjT FieldF SsaArg
+  | PrjT FieldF Ssa
   deriving Show
