@@ -29,7 +29,7 @@ import Crosscutting
 
 import Expand (expand)
 import Typechecking (infer)
-import Lower (lower)
+import HoistLets (hoistLets)
 import Codegen (emitGlsl)
 
 point :: Shape
@@ -80,7 +80,7 @@ compile s = targetProgram
     -- es medio turbio el unwrap, pero solo puede
     -- dar error si hay bugs en expand o infer.
     formulaType                  = unwrap $ infer [("pos", VectorF)] formula
-    (lastExpression, ssaProgram) = lower formula
+    (lastExpression, ssaProgram) = hoistLets formula
     targetProgram                = emitGlsl lastExpression ssaProgram
 
     unwrap (Right x) = x

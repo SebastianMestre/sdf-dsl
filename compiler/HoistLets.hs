@@ -1,4 +1,10 @@
-module Lower where
+{-
+
+Este modulo convierte de Form a FormNl. En particular,
+extrae todos los lets y los pone en una lista aparte.
+
+-}
+module HoistLets where
 
 import Core
 import Crosscutting
@@ -44,8 +50,8 @@ addDecl x = do
   putState (xs ++ [x], n+1)
   return n
 
-lower :: Form -> (FormNl, [DeclN])
-lower f = (lastValue, decls)
+hoistLets :: Form -> (FormNl, [DeclN])
+hoistLets f = (lastValue, decls)
   where
 
   (lastValue, (decls, _)) = runNameResolution (go f) initial
