@@ -1,5 +1,37 @@
 <!DOCTYPE html>
-<canvas id=cnv width=600 height=600></canvas>
+
+<style>
+
+#container {
+display: flex;
+flex-flow: column nowrap;
+justify-content: flex-start;
+align-items: center;
+}
+
+body {
+	margin: 0;
+	background: #222;
+}
+
+#botonera {
+	background: #666;
+	padding: 1em;
+	margin: 0.3em;
+	border-radius: 3px;
+	border: 1px solid #888;
+	box-shadow: 0 1em 1em black;
+}
+
+</style>
+
+<div id=container>
+	<canvas id=cnv width=400 height=400></canvas>
+	<div id=botonera>
+		<textarea id=text-shader cols=68 rows=8></textarea>
+		<button id=btn-dibujar>DIBUJAR</button>
+	</div>
+</div>
 
 <script id="vshader" type="x-shader/x-vertex">
 
@@ -33,101 +65,33 @@
 
 	float sdf1(vec3 pos) {
 		vec3 v0 = pos;
-float v1 = length(v0);
-float v2 = v1 - 1.0;
-return v2;
-	}
-
-	float sdf2(vec3 pos) {
-		vec3 v0 = pos;
-vec3 v1 = vec3(-5.0e-2, -0.25, -9.999998e-3);
-vec3 v2 = vec3(5.0e-2, 0.25, 9.999998e-3);
-vec3 v3 = clamp(v0, v1, v2);
-vec3 v4 = v0 - v3;
-float v5 = length(v4);
-float v6 = v5 - 5.0e-2;
-vec3 v7 = vec3(-7.0e-2, 0.26, -1.5e-2);
-vec3 v8 = v0 - v7;
-float v9 = length(v8);
-float v10 = v9 - 6.0e-2;
-vec3 v11 = vec3(-2.0e-2, 0.29, -1.0e-2);
-vec3 v12 = v0 - v11;
-float v13 = length(v12);
-float v14 = v13 - 7.0e-2;
-vec3 v15 = vec3(4.5e-2, 0.28, -1.0e-2);
-vec3 v16 = v0 - v15;
-float v17 = length(v16);
-float v18 = v17 - 7.0e-2;
-vec3 v19 = vec3(0.1, 0.24, -2.0e-2);
-vec3 v20 = v0 - v19;
-float v21 = length(v20);
-float v22 = v21 - 5.0e-2;
-float v23 = min(v18, v22);
-float v24 = min(v14, v23);
-float v25 = min(v10, v24);
-float v26 = v25 - v6;
-float v27 = 0.5 * v26;
-float v28 = v27 / 3.0e-2;
-float v29 = 0.5 + v28;
-float v30 = clamp(v29, 0.0, 1.0);
-float v31 = mix(v25, v6, v30);
-float v32 = 3.0e-2 * v30;
-float v33 = 1.0 - v30;
-float v34 = v32 * v33;
-float v35 = v31 - v34;
-vec3 v36 = vec3(0.0, 0.0, -5.0e-2);
-vec3 v37 = v0 - v36;
-vec3 v38 = vec3(-7.0e-2, 0.26, -1.0e-2);
-vec3 v39 = v37 - v38;
-float v40 = length(v39);
-float v41 = v40 - 3.0e-2;
-vec3 v42 = vec3(-2.0e-2, 0.29, -1.0e-2);
-vec3 v43 = v37 - v42;
-float v44 = length(v43);
-float v45 = v44 - 3.0e-2;
-vec3 v46 = vec3(4.5e-2, 0.28, -1.0e-2);
-vec3 v47 = v37 - v46;
-float v48 = length(v47);
-float v49 = v48 - 3.0e-2;
-vec3 v50 = vec3(0.1, 0.24, -6.0e-3);
-vec3 v51 = v37 - v50;
-float v52 = length(v51);
-float v53 = v52 - 3.0e-2;
-float v54 = min(v49, v53);
-float v55 = min(v45, v54);
-float v56 = min(v41, v55);
-vec3 v57 = vec3(0.0, 0.2, -1.0e-2);
-vec3 v58 = v0 - v57;
-float v59 = length(v58);
-float v60 = v59 - 7.0e-2;
-vec3 v61 = vec3(-4.0e-2, -4.0e-2, -2.5e-2);
-vec3 v62 = v58 - v61;
-float v63 = length(v62);
-float v64 = v63 - 4.0e-2;
-vec3 v65 = vec3(4.0e-2, -4.0e-2, -2.5e-2);
-vec3 v66 = v58 - v65;
-float v67 = length(v66);
-float v68 = v67 - 4.0e-2;
-float v69 = min(v64, v68);
-float v70 = v69 - v60;
-float v71 = 0.5 * v70;
-float v72 = v71 / 2.0e-2;
-float v73 = 0.5 + v72;
-float v74 = clamp(v73, 0.0, 1.0);
-float v75 = mix(v69, v60, v74);
-float v76 = 2.0e-2 * v74;
-float v77 = 1.0 - v74;
-float v78 = v76 * v77;
-float v79 = v75 - v78;
-float v80 = min(v56, v79);
-float v81 = min(v35, v80);
-return v81;
+		vec3 v1 = (v0 - clamp(v0, vec3(-5.0e-2, -0.25, -9.999998e-3), vec3(5.0e-2, 0.25, 9.999998e-3)));
+		vec3 v2 = (abs(v0) - vec3(5.0e-2, 0.25, 9.999998e-3));
+		float v3 = ((length(v1) + min(0.0, max(max(v2.x, v2.y), v2.z))) - 5.0e-2);
+		vec3 v4 = (v0 - vec3(-7.0e-2, 0.26, -1.5e-2));
+		vec3 v5 = (v0 - vec3(-2.0e-2, 0.29, -1.0e-2));
+		vec3 v6 = (v0 - vec3(4.5e-2, 0.28, -1.0e-2));
+		vec3 v7 = (v0 - vec3(0.1, 0.24, -2.0e-2));
+		float v8 = min((length(v4) - 6.0e-2), min((length(v5) - 7.0e-2), min((length(v6) - 7.0e-2), (length(v7) - 5.0e-2))));
+		float v9 = clamp((0.5 + ((0.5 * (v8 - v3)) / 3.0e-2)), 0.0, 1.0);
+		vec3 v10 = (v0 - vec3(0.0, 0.0, -5.0e-2));
+		vec3 v11 = (v10 - vec3(-7.0e-2, 0.26, -1.0e-2));
+		vec3 v12 = (v10 - vec3(-2.0e-2, 0.29, -1.0e-2));
+		vec3 v13 = (v10 - vec3(4.5e-2, 0.28, -1.0e-2));
+		vec3 v14 = (v10 - vec3(0.1, 0.24, -6.0e-3));
+		vec3 v15 = (v0 - vec3(0.0, 0.2, -1.0e-2));
+		float v16 = (length(v15) - 7.0e-2);
+		vec3 v17 = (v15 - vec3(-4.0e-2, -4.0e-2, -2.5e-2));
+		vec3 v18 = (v15 - vec3(4.0e-2, -4.0e-2, -2.5e-2));
+		float v19 = min((length(v17) - 4.0e-2), (length(v18) - 4.0e-2));
+		float v20 = clamp((0.5 + ((0.5 * (v19 - v16)) / 2.0e-2)), 0.0, 1.0);
+		return min((mix(v8, v3, v9) - ((3.0e-2 * v9) * (1.0 - v9))), min(min((length(v11) - 3.0e-2), min((length(v12) - 3.0e-2), min((length(v13) - 3.0e-2), (length(v14) - 3.0e-2)))), (mix(v19, v16, v20) - ((2.0e-2 * v20) * (1.0 - v20)))));
 	}
 
 	float sdf(vec3 pos, mat3 transform) {
 		pos = transform * pos;
 		float scale = 10.0;
-		return sdf2((pos + vec3(0.0, 1.5, 0.0)) / scale) * scale;
+		return sdf1((pos + vec3(0.0, 1.5, 0.0)) / scale) * scale;
 	}
 
 	vec4 raymarch(vec3 pos, vec3 dir, mat3 transform) {
