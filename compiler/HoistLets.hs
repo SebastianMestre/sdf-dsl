@@ -9,14 +9,26 @@ module HoistLets where
 import Core
 import Crosscutting
 import qualified VarLookup
-import Control.Monad.State
 import Control.Monad
 
-type S = ([DeclN], VarId)
+{-
 
-type GEnv = VarLookup.Lookup VarId
+Definimos una monada especifica para este paso. Implementa
+los efectos Reader y State.
 
-data NameResolution a = NR { runNameResolution :: (GEnv, S) -> (a, S) }
+El efecto Reader se usa para pasar el entorno y extenderlo a
+medida que nos adentramos en let-bindings.
+
+El efecto State se usa para llevar las variables ya ligadas
+y un contador que usamos para generar variables frescas.
+
+-}
+
+type State = ([DeclN], VarId)
+
+type Env = VarLookup.Lookup VarId
+
+data NameResolution a = NR { runNameResolution :: (Env, State) -> (a, State) }
 
 instance Functor NameResolution where
   fmap f mx = mx >>= (return . f)
@@ -32,13 +44,13 @@ instance Monad NameResolution where
     (b, s'') = runNameResolution (g a) (env, s')
     in (b, s'')
 
-getState :: NameResolution S
+getState :: NameResolution State
 getState = NR $ \(_, s) -> (s, s)
 
-putState :: S -> NameResolution ()
+putState :: State -> NameResolution ()
 putState s = NR $ \_ -> ((), s)
 
-getEnv :: NameResolution GEnv
+getEnv :: NameResolution Env
 getEnv = NR $ \(env, s) -> (env, s)
 
 extendEnv :: (String, VarId) -> NameResolution a -> NameResolution a
@@ -58,10 +70,10 @@ hoistLets f = (lastValue, decls)
 
   initial = (defaultEnv, defaultState)
 
-  defaultEnv :: GEnv
+  defaultEnv :: Env
   defaultEnv = VarLookup.extend ("pos", 0) $ VarLookup.empty
 
-  defaultState :: S
+  defaultState :: State
   defaultState = ([DeclN VectorF $ FreeN "pos"], 1)
 
   go :: Form -> NameResolution FormNl
