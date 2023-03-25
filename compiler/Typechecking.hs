@@ -1,6 +1,6 @@
 module Typechecking where
 
-import FormulaAst
+import Core
 import Crosscutting
 import Data.Maybe
 

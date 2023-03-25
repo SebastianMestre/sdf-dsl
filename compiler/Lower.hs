@@ -1,13 +1,12 @@
 module Lower where
 
-import FormulaAst
+import Core
 import Crosscutting
 import qualified VarLookup
-import Ssa
 import Control.Monad.State
 import Control.Monad
 
-type S = ([DeclT], VarId)
+type S = ([DeclN], VarId)
 
 type GEnv = VarLookup.Lookup VarId
 
@@ -39,13 +38,13 @@ getEnv = NR $ \(env, s) -> (env, s)
 extendEnv :: (String, VarId) -> NameResolution a -> NameResolution a
 extendEnv p ma = NR $ \(env, s) -> runNameResolution ma (VarLookup.extend p env, s)
 
-addDecl :: DeclT -> NameResolution VarId
+addDecl :: DeclN -> NameResolution VarId
 addDecl x = do
   (xs, n) <- getState
   putState (xs ++ [x], n+1)
   return n
 
-lower :: Form -> (Ssa, [DeclT])
+lower :: Form -> (FormNl, [DeclN])
 lower f = (lastValue, decls)
   where
 
@@ -57,14 +56,14 @@ lower f = (lastValue, decls)
   defaultEnv = VarLookup.extend ("pos", 0) $ VarLookup.empty
 
   defaultState :: S
-  defaultState = ([DeclT VectorF $ FreeT "pos"], 1)
+  defaultState = ([DeclN VectorF $ FreeN "pos"], 1)
 
-  go :: Form -> NameResolution Ssa
-  go (VarF v)         = BoundT <$> VarLookup.get v <$> getEnv
-  go (LitF x)         = ConstT <$> pure x
-  go (AppF op as)     = AppT op <$> mapM go as
-  go (PrjF field e1)  = PrjT field <$> go e1
+  go :: Form -> NameResolution FormNl
+  go (VarF v)         = BoundN <$> VarLookup.get v <$> getEnv
+  go (LitF x)         = LitN <$> pure x
+  go (AppF op as)     = AppN op <$> mapM go as
+  go (PrjF field e1)  = PrjN field <$> go e1
   go (LetF h x f1 f2) = do
-    i1 <- addDecl =<< DeclT h <$> go f1
+    i1 <- addDecl =<< DeclN h <$> go f1
     i2 <- extendEnv (x, i1) $ go f2
     return i2

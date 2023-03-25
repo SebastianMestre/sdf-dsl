@@ -4,33 +4,33 @@ module Codegen
 
 -- Este modulo implementa la ultima etapa de compilacion.
 -- Especificamente, compila la representacion intermedia
--- `Ssa` al lenguage objetivo, GLSL.
+-- `FormNl` al lenguage objetivo, GLSL.
 
+import Core
 import Crosscutting
 import GlPrinter
-import Ssa
 
 -- Dada una lista de instrucciones, genera un programa en
 -- GLSL que les corresponde.
-emitGlsl :: Ssa -> [DeclT] -> String
+emitGlsl :: FormNl -> [DeclN] -> String
 emitGlsl c cs = showStmt $ glSeq block returnStmt
   where
   block = foldl1 glSeq statements
   statements = map (uncurry go) $ zip [0..] cs
   returnStmt = glReturn $ renderValue c
 
-go :: VarId -> DeclT -> GlStmt
-go idx (DeclT t v@(ConstT _)) = renderConstDecl (renderType t) idx (renderValue v)
-go idx (DeclT t v)            = renderDecl      (renderType t) idx (renderValue v)
+go :: VarId -> DeclN -> GlStmt
+go idx (DeclN t v@(LitN _)) = renderConstDecl (renderType t) idx (renderValue v)
+go idx (DeclN t v)          = renderDecl      (renderType t) idx (renderValue v)
 
-renderValue :: Ssa -> GlExpr
-renderValue (ConstT x)     = glFloatLiteral x
-renderValue (FreeT x)      = glNameExpr $ glName x
-renderValue (BoundT i)     = glNameExpr $ renderVar i
-renderValue (AppT f as)    = renderApp f as
-renderValue (PrjT field a) = glFieldAccess (renderField field) (renderValue a)
+renderValue :: FormNl -> GlExpr
+renderValue (LitN x)       = glFloatLiteral x
+renderValue (FreeN x)      = glNameExpr $ glName x
+renderValue (BoundN i)     = glNameExpr $ renderVar i
+renderValue (AppN f as)    = renderApp f as
+renderValue (PrjN field a) = glFieldAccess (renderField field) (renderValue a)
 
-renderApp :: FunF -> [Ssa] -> GlExpr
+renderApp :: FunF -> [FormNl] -> GlExpr
 renderApp SubF [a0, a1] = glBinop "-" (renderValue a0) (renderValue a1)
 renderApp AddF [a0, a1] = glBinop "+" (renderValue a0) (renderValue a1)
 renderApp MulF [a0, a1] = glBinop "*" (renderValue a0) (renderValue a1)

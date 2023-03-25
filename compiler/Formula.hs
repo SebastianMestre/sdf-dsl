@@ -30,7 +30,7 @@ module Formula
   ) where
 
 import Crosscutting
-import FormulaAst
+import Core
 
 type Formula = Form
 
