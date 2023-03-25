@@ -6,23 +6,23 @@ Este modulo ofrece herramientas para construir valores de tipo Form
 module Form
   ( Form
 
-  -- world position
+  -- posicion en el mundo
   , pos
 
-  -- scalar constant
+  -- constante escalar
   , constantF
 
-  -- variable declaration
+  -- declaracion de variable
   , withLocal
 
-  -- vector operations
+  -- operaciones de vectores
   , getX
   , getY
   , getZ
   , mkVecF
   , mkMatF
 
-  -- function calls
+  -- llamadas a funcion
   , lengthF
   , modF
   , minF
@@ -34,6 +34,9 @@ module Form
 
 import Crosscutting
 import Core
+
+-- Implementamos Num y Fractional para permitir el uso de
+-- azucar sintactico al crear terminos
 
 instance Num Form where
   x + y         = AppF AddF [x, y]

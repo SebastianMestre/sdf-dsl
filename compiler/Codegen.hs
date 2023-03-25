@@ -1,10 +1,14 @@
+{-
+
+Este modulo implementa la ultima etapa de compilacion.
+Especificamente, compila la representacion intermedia
+`FormNl` al lenguage objetivo, GLSL.
+
+-}
 module Codegen
   ( emitGlsl
   ) where
 
--- Este modulo implementa la ultima etapa de compilacion.
--- Especificamente, compila la representacion intermedia
--- `FormNl` al lenguage objetivo, GLSL.
 
 import Core
 import Crosscutting

@@ -1,3 +1,9 @@
+{-
+
+Este modulo convierte un Shape a la formula matematica
+correspondiente a su SDF.
+
+-}
 module Expand where
 
 import ShapeAst
@@ -13,6 +19,8 @@ expand (ExtrudedS x s)        =
       inside = minF 0.0 (maxComp (abs pos - vec x))
   in withPos pos' (expand s) + inside
 expand (TransformedS a s)     = withPos (mat (transpose3 a) * pos) (expand s)
+expand (ScaledS x s)          = constantF x * withPos (vec (ix, ix, ix) * pos) (expand s)
+  where ix = 1 / x
 expand (RepeatedXS x s)       = withPos (periodic x pos) (expand s)
 expand (UnionS s1 s2)         = minF (expand s1) (expand s2)
 expand (IntersectionS s1 s2)  = maxF (expand s1) (expand s2)

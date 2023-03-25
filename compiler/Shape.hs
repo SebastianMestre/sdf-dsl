@@ -3,25 +3,26 @@ module Shape (
     Float3,
     Float3x3,
 
-    -- primitives
-    point,
-    sphere,
-    box,
-    roundbox,
-    capsule,
+    -- primitivas
+    point,       -- Punto en el origen
+    sphere,      -- Esfera
+    box,         -- Prisma rectangular
+    roundbox,    -- Prisma rectangular con esquinas redondeadas
+    capsule,     -- Capsula
 
-    -- transformations
-    rotateZ,
-    translate,
-    inflate,
-    repeatX,
+    -- transformaciones
+    scale,       -- Escala una Shape
+    rotateZ,     -- Rota una Shape sobre el eje Z
+    translate,   -- Mueve un Shape en el espacio
+    inflate,     -- Infla un Shape, redondeando sus esquinas
+    repeatX,     -- Repite un Shape sobre el eje X indefinidamente
 
-    -- combinators
-    union,
-    smoothUnion,
+    -- combinadores
+    union,       -- Union de varios Shapes
+    smoothUnion, -- Union de dos Shapes, suavizando el punto de contacto
 
-    -- evaluation
-    compile
+    -- evaluacion
+    compile      -- Da una codificacion de Shape en GLSL
   ) where
 
 import ShapeAst
@@ -70,6 +71,9 @@ rotateZ angle = TransformedS rotationMatrix
   cosAngle = cos angle
   sinAngle = sin angle
 
+scale :: Float -> Shape -> Shape
+scale = ScaledS
+
 repeatX :: Float -> Shape -> Shape
 repeatX = RepeatedXS
 
@@ -77,10 +81,11 @@ compile :: Shape -> String
 compile s = targetProgram
   where
     formula = expand s
-    -- es medio turbio el unwrap, pero solo puede
-    -- dar error si hay bugs en expand o infer.
-    formulaType                  = unwrap $ infer [("pos", VectorF)] formula
-    (lastExpression, ssaProgram) = hoistLets formula
-    targetProgram                = emitGlsl lastExpression ssaProgram
+
+    -- unwrap diverge si infer falla, pero esto solo pasa si
+    -- tenemos un bug en expand.
+    formulaType       = unwrap $ infer [("pos", VectorF)] formula
+    (lastExpr, decls) = hoistLets formula
+    targetProgram     = emitGlsl lastExpr decls
 
     unwrap (Right x) = x
