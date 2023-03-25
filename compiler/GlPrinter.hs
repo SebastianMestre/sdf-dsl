@@ -1,3 +1,23 @@
+{-
+
+Este modulo implementa un DSL Shallow para imprimir
+codigo GLSL.
+
+Sintacticamente, GLSL es un lenguaje estilo C. Para mas
+detalle, aca se da una gramatica de GLSL simplificada.
+
+Stmt ::= Stmt Stmt                                [seq]
+       | Type Name "=" Expr ";"                  [decl]
+       | "const" Type Name "=" Expr ";"    [const-decl]
+       | "return" Expr ";"                     [return]
+
+Expr ::= Expr Op Expr                           [binop]
+       | Name "(" Expr ("," Expr)* ")"           [call]
+       | Expr "." Name                   [field-access]
+
+Op ::= "+" | "-" | "*" | ...
+
+-}
 module GlPrinter
   ( GlExpr
   , GlStmt
@@ -38,21 +58,6 @@ module GlPrinter
 
 import Data.List
 
--- Este modulo implementa un DSL Shallow para imprimir
--- codigo GLSL.
--- 
--- Sintacticamente, GLSL es un lenguaje estilo C. Para mas
--- detalle, aca se da una gramatica de GLSL simplificada.
---
--- Stmt ::= Stmt Stmt                                [seq]
---        | Type Name "=" Expr ";"                  [decl]
---        | "const" Type Name "=" Expr ";"    [const-decl]
---
--- Expr ::= Expr Op Expr                           [binop]
---        | Name "(" Expr ("," Expr)* ")"           [call]
---        | Expr "." Name                   [field-access]
---
--- Op ::= "+" | "-" | "*" | ...
 
 newtype GlStmt = GlStmt { showStmt :: String }
 newtype GlExpr = GlExpr { showExpr :: String }
