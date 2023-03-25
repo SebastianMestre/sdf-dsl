@@ -1,7 +1,10 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-
 
-module Formula
-  ( Formula
+Este modulo ofrece herramientas para construir valores de tipo Form
+
+-}
+module Form
+  ( Form
 
   -- world position
   , pos
@@ -32,9 +35,7 @@ module Formula
 import Crosscutting
 import Core
 
-type Formula = Form
-
-instance Num Formula where
+instance Num Form where
   x + y         = AppF AddF [x, y]
   x * y         = AppF MulF [x, y]
   x - y         = AppF SubF [x, y]
@@ -43,17 +44,17 @@ instance Num Formula where
   fromInteger n = LitF (fromInteger n :: Float)
   signum        = undefined
 
-instance Fractional Formula where
+instance Fractional Form where
   x / y          = AppF DivF [x, y]
   fromRational n = LitF (fromRational n :: Float)
 
-pos :: Formula
+pos :: Form
 pos = VarF "pos"
 
-constantF :: Float -> Formula
+constantF :: Float -> Form
 constantF = LitF
 
-withLocal :: String -> TypeF -> Formula -> (Formula -> Formula) -> Formula
+withLocal :: String -> TypeF -> Form -> (Form -> Form) -> Form
 withLocal v ty t f = LetF ty v t (f (VarF v))
 
 getX = PrjF XF
