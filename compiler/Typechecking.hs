@@ -89,7 +89,7 @@ infer env (PrjF field e) = do
   t <- infer env e
 
   inner <- if t /= VectorF
-    then error "accessed fields of something that is not a vector" -- TODO: error message
+    then error "accessed fields of something that is not a vector"
     else return ()
 
   return ScalarF
