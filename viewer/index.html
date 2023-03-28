@@ -30,27 +30,12 @@ body {
 	<div id=botonera>
 		<textarea id=text-shader cols=68 rows=8>
 vec3 v0 = pos;
-vec3 v1 = (v0 - clamp(v0, vec3(-5.0e-2, -0.25, -9.999998e-3), vec3(5.0e-2, 0.25, 9.999998e-3)));
-vec3 v2 = (abs(v0) - vec3(5.0e-2, 0.25, 9.999998e-3));
-float v3 = ((length(v1) + min(0.0, max(max(v2.x, v2.y), v2.z))) - 5.0e-2);
-vec3 v4 = (v0 - vec3(-7.0e-2, 0.26, -1.5e-2));
-vec3 v5 = (v0 - vec3(-2.0e-2, 0.29, -1.0e-2));
-vec3 v6 = (v0 - vec3(4.5e-2, 0.28, -1.0e-2));
-vec3 v7 = (v0 - vec3(0.1, 0.24, -2.0e-2));
-float v8 = min((length(v4) - 6.0e-2), min((length(v5) - 7.0e-2), min((length(v6) - 7.0e-2), (length(v7) - 5.0e-2))));
-float v9 = clamp((0.5 + ((0.5 * (v8 - v3)) / 3.0e-2)), 0.0, 1.0);
-vec3 v10 = (v0 - vec3(0.0, 0.0, -5.0e-2));
-vec3 v11 = (v10 - vec3(-7.0e-2, 0.26, -1.0e-2));
-vec3 v12 = (v10 - vec3(-2.0e-2, 0.29, -1.0e-2));
-vec3 v13 = (v10 - vec3(4.5e-2, 0.28, -1.0e-2));
-vec3 v14 = (v10 - vec3(0.1, 0.24, -6.0e-3));
-vec3 v15 = (v0 - vec3(0.0, 0.2, -1.0e-2));
-float v16 = (length(v15) - 7.0e-2);
-vec3 v17 = (v15 - vec3(-4.0e-2, -4.0e-2, -2.5e-2));
-vec3 v18 = (v15 - vec3(4.0e-2, -4.0e-2, -2.5e-2));
-float v19 = min((length(v17) - 4.0e-2), (length(v18) - 4.0e-2));
-float v20 = clamp((0.5 + ((0.5 * (v19 - v16)) / 2.0e-2)), 0.0, 1.0);
-return min((mix(v8, v3, v9) - ((3.0e-2 * v9) * (1.0 - v9))), min(min((length(v11) - 3.0e-2), min((length(v12) - 3.0e-2), min((length(v13) - 3.0e-2), (length(v14) - 3.0e-2)))), (mix(v19, v16, v20) - ((2.0e-2 * v20) * (1.0 - v20)))));
+vec3 v1 = (v0 - vec3(0.0, 0.2, 0.0));
+vec3 v2 = (mat3(vec3(0.7071069, 0.70710665, 0.0), vec3(-0.70710665, 0.7071069, 0.0), vec3(0.0, 0.0, 1.0)) * v1);
+vec3 v3 = (mat3(vec3(0.7071069, 0.0, -0.70710665), vec3(0.0, 1.0, 0.0), vec3(0.70710665, 0.0, 0.7071069)) * v2);
+vec3 v4 = (v3 - clamp(v3, vec3(-7.5e-2, -7.5e-2, -7.5e-2), vec3(7.5e-2, 7.5e-2, 7.5e-2)));
+vec3 v5 = (abs(v3) - vec3(7.5e-2, 7.5e-2, 7.5e-2));
+return ((length(v4) + min(0.0, max(max(v5.x, v5.y), v5.z))) - 2.5e-2);
 		</textarea>
 		<button id=btn-dibujar>DIBUJAR</button>
 	</div>
@@ -88,27 +73,12 @@ return min((mix(v8, v3, v9) - ((3.0e-2 * v9) * (1.0 - v9))), min(min((length(v11
 
 	float sdf1(vec3 pos) {
 		vec3 v0 = pos;
-		vec3 v1 = (v0 - clamp(v0, vec3(-5.0e-2, -0.25, -9.999998e-3), vec3(5.0e-2, 0.25, 9.999998e-3)));
-		vec3 v2 = (abs(v0) - vec3(5.0e-2, 0.25, 9.999998e-3));
-		float v3 = ((length(v1) + min(0.0, max(max(v2.x, v2.y), v2.z))) - 5.0e-2);
-		vec3 v4 = (v0 - vec3(-7.0e-2, 0.26, -1.5e-2));
-		vec3 v5 = (v0 - vec3(-2.0e-2, 0.29, -1.0e-2));
-		vec3 v6 = (v0 - vec3(4.5e-2, 0.28, -1.0e-2));
-		vec3 v7 = (v0 - vec3(0.1, 0.24, -2.0e-2));
-		float v8 = min((length(v4) - 6.0e-2), min((length(v5) - 7.0e-2), min((length(v6) - 7.0e-2), (length(v7) - 5.0e-2))));
-		float v9 = clamp((0.5 + ((0.5 * (v8 - v3)) / 3.0e-2)), 0.0, 1.0);
-		vec3 v10 = (v0 - vec3(0.0, 0.0, -5.0e-2));
-		vec3 v11 = (v10 - vec3(-7.0e-2, 0.26, -1.0e-2));
-		vec3 v12 = (v10 - vec3(-2.0e-2, 0.29, -1.0e-2));
-		vec3 v13 = (v10 - vec3(4.5e-2, 0.28, -1.0e-2));
-		vec3 v14 = (v10 - vec3(0.1, 0.24, -6.0e-3));
-		vec3 v15 = (v0 - vec3(0.0, 0.2, -1.0e-2));
-		float v16 = (length(v15) - 7.0e-2);
-		vec3 v17 = (v15 - vec3(-4.0e-2, -4.0e-2, -2.5e-2));
-		vec3 v18 = (v15 - vec3(4.0e-2, -4.0e-2, -2.5e-2));
-		float v19 = min((length(v17) - 4.0e-2), (length(v18) - 4.0e-2));
-		float v20 = clamp((0.5 + ((0.5 * (v19 - v16)) / 2.0e-2)), 0.0, 1.0);
-		return min((mix(v8, v3, v9) - ((3.0e-2 * v9) * (1.0 - v9))), min(min((length(v11) - 3.0e-2), min((length(v12) - 3.0e-2), min((length(v13) - 3.0e-2), (length(v14) - 3.0e-2)))), (mix(v19, v16, v20) - ((2.0e-2 * v20) * (1.0 - v20)))));
+		vec3 v1 = (v0 - vec3(0.0, 0.2, 0.0));
+		vec3 v2 = (mat3(vec3(0.7071069, 0.70710665, 0.0), vec3(-0.70710665, 0.7071069, 0.0), vec3(0.0, 0.0, 1.0)) * v1);
+		vec3 v3 = (mat3(vec3(0.7071069, 0.0, -0.70710665), vec3(0.0, 1.0, 0.0), vec3(0.70710665, 0.0, 0.7071069)) * v2);
+		vec3 v4 = (v3 - clamp(v3, vec3(-7.5e-2, -7.5e-2, -7.5e-2), vec3(7.5e-2, 7.5e-2, 7.5e-2)));
+		vec3 v5 = (abs(v3) - vec3(7.5e-2, 7.5e-2, 7.5e-2));
+		return ((length(v4) + min(0.0, max(max(v5.x, v5.y), v5.z))) - 2.5e-2);
 	}
 
 	float sdf(vec3 pos, mat3 transform) {
