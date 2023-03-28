@@ -1,9 +1,3 @@
-module Typechecking where
-
-import Core
-import Crosscutting
-import Data.Maybe
-
 {-
 
 Este modulo implementa un typechecker para el lenguage
@@ -19,6 +13,12 @@ tipos. El ultimo representa el tipo de retorno. El resto son
 los argumentos.
 
 -}
+module Typechecking where
+
+import Core
+import Crosscutting
+import Data.Maybe
+
 
 type Err = Either String
 type TEnv = [(Name, TypeF)]

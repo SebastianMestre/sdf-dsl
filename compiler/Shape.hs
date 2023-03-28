@@ -4,25 +4,29 @@ module Shape (
     Float3x3,
 
     -- primitivas
-    point,       -- Punto en el origen
-    sphere,      -- Esfera
-    box,         -- Prisma rectangular
-    roundbox,    -- Prisma rectangular con esquinas redondeadas
-    capsule,     -- Capsula
+    point,              -- Punto en el origen
+    sphere,             -- Esfera
+    box,                -- Prisma rectangular
+    roundbox,           -- Prisma rectangular con esquinas redondeadas
+    capsule,            -- Capsula
 
     -- transformaciones
-    scale,       -- Escala una Shape
-    rotateZ,     -- Rota una Shape sobre el eje Z
-    translate,   -- Mueve un Shape en el espacio
-    inflate,     -- Infla un Shape, redondeando sus esquinas
-    repeatX,     -- Repite un Shape sobre el eje X indefinidamente
+    scale,              -- Escala una Shape
+    rotateX,            -- Rota una Shape sobre el eje X
+    rotateY,            -- Rota una Shape sobre el eje Y
+    rotateZ,            -- Rota una Shape sobre el eje Z
+    translate,          -- Mueve un Shape en el espacio
+    inflate,            -- Infla un Shape, redondeando sus esquinas
+    repeatX,            -- Repite un Shape sobre el eje X indefinidamente
 
     -- combinadores
-    union,       -- Union de varios Shapes
-    smoothUnion, -- Union de dos Shapes, suavizando el punto de contacto
+    union,              -- Union de varios Shapes
+    intersection,       -- Interseccion de varios Shapes
+    smoothUnion,        -- Union de dos Shapes, suavizando el punto de contacto
+    smoothIntersection, -- Interseccion de dos Shapes, suavizando el punto de contacto
 
     -- evaluacion
-    compile      -- Da una codificacion de Shape en GLSL
+    compile             -- Da una codificacion de un Shape en GLSL
   ) where
 
 import ShapeAst
@@ -52,8 +56,14 @@ capsule radius length = ExtrudedS (length, 0.0, 0.0) (sphere radius)
 union :: [Shape] -> Shape
 union = foldr1 UnionS
 
+intersection :: [Shape] -> Shape
+intersection = foldr1 IntersectionS
+
 smoothUnion :: Float -> Shape -> Shape -> Shape
 smoothUnion = SmoothUnionS
+
+smoothIntersection :: Float -> Shape -> Shape -> Shape
+smoothIntersection = SmoothIntersectionS
 
 inflate :: Float -> Shape -> Shape
 inflate = InflatedS
@@ -61,13 +71,33 @@ inflate = InflatedS
 translate :: Float3 -> Shape -> Shape
 translate = TranslatedS
 
+rotateX :: Float -> Shape -> Shape
+rotateX angle = TransformedS rotationMatrix
+  where
+  rotationMatrix =
+    ((1, 0,         0       )
+    ,(0, cosAngle, -sinAngle)
+    ,(0, sinAngle,  cosAngle))
+  cosAngle = cos angle
+  sinAngle = sin angle
+
+rotateY :: Float -> Shape -> Shape
+rotateY angle = TransformedS rotationMatrix
+  where
+  rotationMatrix =
+    (( cosAngle, 0, sinAngle)
+    ,( 0,        1, 0       )
+    ,(-sinAngle, 0, cosAngle))
+  cosAngle = cos angle
+  sinAngle = sin angle
+
 rotateZ :: Float -> Shape -> Shape
 rotateZ angle = TransformedS rotationMatrix
   where
   rotationMatrix =
-    ((cosAngle, -sinAngle, 0),
-     (sinAngle,  cosAngle, 0),
-     (0,         0,        1))
+    ((cosAngle, -sinAngle, 0)
+    ,(sinAngle,  cosAngle, 0)
+    ,(0,         0,        1))
   cosAngle = cos angle
   sinAngle = sin angle
 

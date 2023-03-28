@@ -22,6 +22,7 @@ data Shape
   | IntersectionS Shape Shape
 
   | SmoothUnionS Float Shape Shape
+  | SmoothIntersectionS Float Shape Shape
 
 -- Simetrias
   | RepeatedXS Float Shape

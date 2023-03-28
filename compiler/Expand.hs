@@ -11,25 +11,30 @@ import Form
 import Crosscutting
 
 expand :: Shape -> Form
-expand PointS                 = lengthF pos
-expand (TranslatedS x s)      = withPos (pos - vec x) (expand s)
-expand (InflatedS x s)        = expand s - constantF x
-expand (ExtrudedS x s)        =
+expand PointS                        = lengthF pos
+expand (TranslatedS x s)             = withPos (pos - vec x) (expand s)
+expand (InflatedS x s)               = expand s - constantF x
+expand (ExtrudedS x s)               =
   let pos' = pos - clampF pos (vec (negate3 x)) (vec x)
       inside = minF 0.0 (maxComp (abs pos - vec x))
   in withPos pos' (expand s) + inside
-expand (TransformedS a s)     = withPos (mat (transpose3 a) * pos) (expand s)
-expand (ScaledS x s)          = constantF x * withPos (vec (ix, ix, ix) * pos) (expand s)
+expand (TransformedS a s)            = withPos (mat (transpose3 a) * pos) (expand s)
+expand (ScaledS x s)                 = constantF x * withPos (vec (ix, ix, ix) * pos) (expand s)
   where ix = 1 / x
-expand (RepeatedXS x s)       = withPos (periodic x pos) (expand s)
-expand (UnionS s1 s2)         = minF (expand s1) (expand s2)
-expand (IntersectionS s1 s2)  = maxF (expand s1) (expand s2)
-expand (SmoothUnionS k s1 s2) =
-  -- usamos variables del lenguaje objetivo para que a b y h se calculen una sola vez
+expand (RepeatedXS x s)              = withPos (periodic x pos) (expand s)
+expand (UnionS s1 s2)                = minF (expand s1) (expand s2)
+expand (IntersectionS s1 s2)         = maxF (expand s1) (expand s2)
+expand (SmoothUnionS k s1 s2)        =
+  -- compilamos a b y h con lets para que se calculen una sola vez
   withLocal "a" ScalarF (expand s1) $ \a ->
   withLocal "b" ScalarF (expand s2) $ \b ->
-  withLocal "h" ScalarF (clampF (0.5 + 0.5 * (b - a) / constantF k) 0 1) $ \h ->
-  mixF b a h - constantF k * h * (1 - h)
+  withLocal "h" ScalarF (maxF (constantF k - abs (a - b) ) 0 / constantF k) $ \h ->
+  minF b a - h * h * h * constantF (k / 6)
+expand (SmoothIntersectionS k s1 s2) =
+  withLocal "a" ScalarF (expand s1) $ \a ->
+  withLocal "b" ScalarF (expand s2) $ \b ->
+  withLocal "h" ScalarF (maxF (constantF k - abs (a - b) ) 0 / constantF k) $ \h ->
+  maxF a b + h * h * h * constantF (k / 6)
 
 
 periodic :: Float -> Form -> Form
